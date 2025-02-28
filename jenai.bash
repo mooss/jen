@@ -16,15 +16,17 @@ DEFAULT_MODEL=gemini
 #############
 # Arguments #
 
-PROMPT=            # Prompt
-POSARGS=()         # Positional arguments
-CONTEXT_DIRS=()    # --dir
-RUNNER=ask-llm     # --dry-run|-n sets this to dry-run,
-CONTEXT_FILES=()   # --file
-INTERACTIVE=false  # --interactive|-i
-MODEL=""           # --model|-m
-TEE_FILE=""        # --tee
-VARIABLES=()       # --var|-v
+PROMPT=                # Prompt
+POSARGS=()             # Positional arguments
+CONTEXT_DIRS=()        # --dir
+RUNNER=ask-llm         # --dry-run|-n sets this to maybe-tee
+CONTEXT_FILES=()       # --file
+INTERACTIVE=false      # --interactive|-i
+MODEL=""               # --model|-m
+EVALUATOR=eval-prompt  # --oneshot|-o sets this to cat
+ONESHOT=false          # --oneshot|-o
+TEE_FILE=""            # --tee
+VARIABLES=()           # --var|-v
 
 ################
 # Associations #
@@ -51,7 +53,7 @@ You are reviewing code, be on the lookout for:
  - Security vulnerabilities (e.g., injection flaws, insecure data handling).
  - Code clarity and maintainability (adherence to style guide, complex logic).
  - Missing error handling or edge case coverage.
- - Adherence to best practices for [programming language/framework].
+ - Adherence to best practices (for programming language or framework).
 
 Do not explain the changes that have been made.
 I know what they are, I made them!
@@ -141,6 +143,7 @@ Options:
   --interactive|-i    Start an interactive aichat session
   --list|-l           List all available prompts
   --model|-m MODEL    Model name (default is $DEFAULT_MODEL, prompts may have their own default)
+  --oneshot|-o        Use positional arguments as the prompt (which is not evaluated)
   --tee FILE          Output to both stdout and FILE (overwrites)
   --var|-v KEY=VALUE  Set variables for prompt interpolation
 
@@ -190,7 +193,11 @@ function __context() {
 
 # Resolve prompt source.
 function prompt() {
-  echo "${PROMPTS[$PROMPT]}"
+  if [[ $ONESHOT == true ]]; then
+    echo "${POSARGS[@]}"
+  else
+    echo "${PROMPTS[$PROMPT]}"
+  fi
 }
 
 # Resolve full model name.
@@ -230,7 +237,7 @@ EOF
 }
 
 function generate-prompt() {
-  prompt | eval-prompt
+  prompt | $EVALUATOR
   context
 }
 
@@ -240,10 +247,6 @@ function generate-prompt() {
 function main() {
   # Runner is dry-run or ask-llm.
   generate-prompt | $RUNNER
-}
-
-function dry-run() {
-  maybe-tee
 }
 
 # Sends stdin to the model.
@@ -285,7 +288,7 @@ while [[ $# -gt 0 ]]; do
       done
       ;;
 
-    -n|--dry-run)
+    --dry-run|-n)
       RUNNER=maybe-tee
       shift
       ;;
@@ -298,23 +301,29 @@ while [[ $# -gt 0 ]]; do
       done
       ;;
 
-    -h|--help)
+    --help|-h)
       usage; exit 0
       ;;
 
-    -i|--interactive)
+    --interactive|-i)
       INTERACTIVE=true
       shift
       ;;
 
-    -l|--list)
+    --list|-l)
       echo "${!PROMPTS[@]}"; exit 0
       ;;
 
-    -m|--model)
+    --model|-m)
       [[ $# -gt 1 ]] || die 'Missing value after -m|--model'
       MODEL="$2"
       shift; shift
+      ;;
+
+    --oneshot|-o)
+      EVALUATOR=cat
+      ONESHOT=true
+      shift
       ;;
 
     --tee)
@@ -323,7 +332,7 @@ while [[ $# -gt 0 ]]; do
       shift; shift
       ;;
 
-    -v|--var) # TODO: Export the variable to the evapolater to make them available in the prompts.
+    --var|-v) # TODO: Export the variable to the evapolater to make them available in the prompts.
       shift
       while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^-.* ]]; do
         VARIABLES+=("$1")
@@ -339,18 +348,20 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Extract prompt name.
 if [[ "${#POSARGS[@]}" -eq 0 ]]; then
   usage | err ''
-  die No prompt name provided.
+  die No positional arguments provided.
 fi
 
-PROMPT="${POSARGS[0]}"
-POSARGS=("${POSARGS[@]:1}")
+# For oneshot prompts, positional arguments are used as the prompt.
+if [[ $ONESHOT == false ]]; then
+  PROMPT="${POSARGS[0]}"
+  POSARGS=("${POSARGS[@]:1}")
+fi
 
 # Set defaults and verify values.
 [[ -z $MODEL ]] && MODEL=$DEFAULT_MODEL
 [[ -v "MODELS[$MODEL]" ]] || die "Unknown model $MODEL"
-[[ -v "PROMPTS[$PROMPT]" ]] || die "Unknown prompt $PROMPT"
+[[ -z $PROMPT ]] || [[ -v "PROMPTS[$PROMPT]" ]] || die "Unknown prompt $PROMPT"
 
 main
