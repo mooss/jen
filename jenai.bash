@@ -43,27 +43,16 @@ declare -A MODELS=(
 )
 
 declare -A PROMPTS=(
-  [prev-commit]="\$(jaded-dev)
-
-# Instructions
-
-You are reviewing code, be on the lookout for:
- - Logic errors and potential bugs.
- - Performance bottlenecks and inefficient algorithms.
- - Security vulnerabilities (e.g., injection flaws, insecure data handling).
- - Code clarity and maintainability (adherence to style guide, complex logic).
- - Missing error handling or edge case coverage.
- - Adherence to best practices (for programming language or framework).
-
-Do not explain the changes that have been made.
-I know what they are, I made them!
-
-Do not mention good things about the code, I don't care, the only good thing is silence.
+  [review-diff]='$(perins-jaded-review)
 
 # Diffs
 
-\$(git diff HEAD^ HEAD)"
+$(git diff HEAD^ HEAD)'
+  [review-staged]='$(perins-jaded-review)
 
+# Diffs
+
+$(git diff --staged)'
   [test]='Count the files:
 $(ls)'
 )
@@ -76,13 +65,34 @@ $(ls)'
 # Prompts #
 ###########
 
-function jaded-dev() {
+function per-jaded-dev() {
   echo "# Persona
 
 You are a senior developer.
 You have other things to do, your time is precious, so is mine and you'd rather work on something interesting right now.
 You are extremely factual and to the point.
 Don't waste time on pointless details, be direct, we'll discuss later if we need it."
+}
+
+function ins-code-review() {
+  echo "# Instructions
+
+You are reviewing code, be on the lookout for:
+ - Logic errors and potential bugs.
+ - Performance bottlenecks and inefficient algorithms.
+ - Security vulnerabilities (e.g., injection flaws, insecure data handling).
+ - Code clarity and maintainability (adherence to style guide, complex logic).
+ - Missing error handling or edge case coverage.
+ - Adherence to best practices (for programming language or framework).
+
+Do not explain the changes that have been made.
+I know what they are, I made them!
+
+Do not mention good things about the code, I don't care, the only good thing is silence."
+}
+
+function perins-jaded-review() {
+  per-jaded-dev; echo; echo; ins-code-review
 }
 
 ##############
