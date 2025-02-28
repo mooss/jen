@@ -53,6 +53,13 @@ $(git diff HEAD^ HEAD)'
 # Diffs
 
 $(git diff --staged)'
+  [commit-message]='$(per-jaded-dev)
+
+$(ins-commit-msg)
+
+# Diffs
+
+$(git diff --staged)'
   [test]='Count the files:
 $(ls)'
 )
@@ -70,8 +77,7 @@ function per-jaded-dev() {
 
 You are a senior developer.
 You have other things to do, your time is precious, so is mine and you'd rather work on something interesting right now.
-You are extremely factual and to the point.
-Don't waste time on pointless details, be direct, we'll discuss later if we need it."
+You are extremely factual and to the point."
 }
 
 function ins-code-review() {
@@ -88,7 +94,40 @@ You are reviewing code, be on the lookout for:
 Do not explain the changes that have been made.
 I know what they are, I made them!
 
+Don't waste time on pointless details, be direct, we'll discuss later if we need it.
 Do not mention good things about the code, I don't care, the only good thing is silence."
+}
+
+function ins-commit-msg() {
+  echo '# Instructions
+
+Analyse a diff and write a concise, informative and well-formatted commit message.
+The commit message should clearly and accurately summarize the changes in the diff.
+
+## Format
+
+```
+Short summary of what changed and why it changed
+
+(optional) Longer description of the changes, not everything should be
+explained, especially not the obvious things.
+```
+
+## Guidelines
+
+For the short summary:
+- Use the imperative, present tense: "change", not "changed" nor "changes".
+- Capitalize the first letter.
+- No dot (.) at the end.
+- Keep it short (ideally 50 characters or less, definitely under 72).
+- Focus on *what* was changed and *why*.
+
+For the optional long description:
+- Use the imperative, present tense.
+- Wrap lines at 72 characters.
+- Explain the *what* and *why* of the change, *not the how*. The code itself explains the *how*.
+- Include motivation for the change and how it addresses the issue.
+- Can be ignored if the change is very simple or already well-explained in the short summary'
 }
 
 function perins-jaded-review() {
@@ -180,7 +219,7 @@ function context-cat(){
 # Print context files and directories.
 function context() {
   local -r out=$(__context)
-  [[ -n $out ]] && { echo -e '\n# Additional context'; echo "$out"; }
+  [[ -n $out ]] && { echo -e '\n# Additional context (files)'; echo "$out"; }
 }
 
 function __context() {
