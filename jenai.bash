@@ -169,7 +169,7 @@ function context-cat(){
 
 # Print context files and directories.
 function context() {
-  out=$(__context)
+  local -r out=$(__context)
   [[ -n $out ]] && { echo -e '\n# Additional context'; echo "$out"; }
 }
 
@@ -210,8 +210,8 @@ function unique-file-prefix() {
   local -r prefix="$2"
   local -r suffix="$3"
 
-  unique="$prefix"
-  counter=1
+  local unique="$prefix"
+  local counter=1
   while [[ -e $directory/$unique$suffix ]]; do
     unique="$prefix.$counter"
     ((counter++))
@@ -222,10 +222,10 @@ function unique-file-prefix() {
 
 # Evaluate stdin as a prompt.
 function eval-prompt() {
-  prompt=$(cat)
+  local -r prompt=$(cat)
 
   # Generate a safe delimiter for the nested cat trick.
-  delim=$(openssl rand -hex 16)$(echo "$prompt" | sha512sum - | sed -r 's/^([0-9a-f]+).*/\1/')
+  local -r delim=$(openssl rand -hex 16)$(echo "$prompt" | sha512sum - | sed -r 's/^([0-9a-f]+).*/\1/')
   
   # The allexport option allows this bash interpreter to have access to everything we defined and
   # evapolate the prompts.
