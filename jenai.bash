@@ -134,15 +134,15 @@ Usage: $0 PROMPT [ARGS...] [OPTIONS]
 Dispatch prompts to an LLM.
 
 Options:
-  --model|-m MODEL    Model name (default is $DEFAULT_MODEL, prompts may have their own default)
+  --dir DIR           Include all files in directory as context
+  --dry-run|-n        Print interpolated prompt without sending to LLM
+  --file FILE         Include specific file(s) as context
+  --help|-h           Display this help message
   --interactive|-i    Start an interactive aichat session
+  --list|-l           List all available prompts
+  --model|-m MODEL    Model name (default is $DEFAULT_MODEL, prompts may have their own default)
   --tee FILE          Output to both stdout and FILE (overwrites)
   --var|-v KEY=VALUE  Set variables for prompt interpolation
-  --list|-l           List all available prompts
-  --dir DIR           Include all files in directory as context
-  --file FILE         Include specific file(s) as context
-  --dry-run|-n        Print interpolated prompt without sending to LLM
-  --help|-h           Display this help message
 
 Available models:
 $(for model in "${!MODELS[@]}"; do echo " - $model"; done)
@@ -277,15 +277,44 @@ function ask-llm() {
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
-    -m|--model)
-      [[ $# -gt 1 ]] || die 'Missing value after -m|--model'
-      MODEL="$2"
-      shift; shift
+    --dir)
+      shift
+      while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^-.* ]]; do
+        CONTEXT_DIRS+=("$1")
+        shift
+      done
+      ;;
+
+    -n|--dry-run)
+      RUNNER=maybe-tee
+      shift
+      ;;
+
+    --file)
+      shift
+      while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^-.* ]]; do
+        CONTEXT_FILES+=("$1")
+        shift
+      done
+      ;;
+
+    -h|--help)
+      usage; exit 0
       ;;
 
     -i|--interactive)
       INTERACTIVE=true
       shift
+      ;;
+
+    -l|--list)
+      echo "${!PROMPTS[@]}"; exit 0
+      ;;
+
+    -m|--model)
+      [[ $# -gt 1 ]] || die 'Missing value after -m|--model'
+      MODEL="$2"
+      shift; shift
       ;;
 
     --tee)
@@ -300,35 +329,6 @@ while [[ $# -gt 0 ]]; do
         VARIABLES+=("$1")
         shift
       done
-      ;;
-
-    -l|--list)
-      echo "${!PROMPTS[@]}"; exit 0
-      ;;
-
-    --dir)
-      shift
-      while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^-.* ]]; do
-        CONTEXT_DIRS+=("$1")
-        shift
-      done
-      ;;
-
-    --file)
-      shift
-      while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^-.* ]]; do
-        CONTEXT_FILES+=("$1")
-        shift
-      done
-      ;;
-
-    -n|--dry-run)
-      RUNNER=dry-run
-      shift
-      ;;
-
-    -h|--help)
-      usage; exit 0
       ;;
 
     *) # TODO: provide mechanism to make the posargs convenient to process inside prompts.
