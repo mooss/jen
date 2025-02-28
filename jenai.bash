@@ -259,6 +259,13 @@ function ask-llm() {
 
   # Non-interactive session for the first question.
   AICHAT_SESSIONS_DIR="$session_dir" aichat --model "$(model)" --save-session --session $session
+
+  # Cannot tee immediately or it disabled syntactic coloration.
+  if [[ -n $TEE_FILE ]]; then
+    yq -r '.messages[-1].content' "$session_yaml" > "$TEE_FILE"
+  fi
+
+  # If asked, the session is resumed interactively.
   if [[ $INTERACTIVE == true ]]; then
     # stdin is "spent", so this call should be interactive.
     AICHAT_SESSIONS_DIR="$session_dir" aichat --model "$(model)" --save-session --session $session
