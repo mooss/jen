@@ -90,6 +90,8 @@ You are reviewing code, be on the lookout for:
  - Code clarity and maintainability (adherence to style guide, complex logic).
  - Missing error handling or edge case coverage.
  - Adherence to best practices (for programming language or framework).
+ - Out-of-place print statement.
+ - Any indication that something is not finished (like \`TODO:\` or \`WIP\` comments).
 
 Do not explain the changes that have been made.
 I know what they are, I made them!
