@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+{ # Bypass auto reload.
+
 # Strict mode.
 set -euo pipefail
 
@@ -18,22 +20,25 @@ DEFAULT_MODEL=gemini
 
 PROMPT=                # Prompt
 POSARGS=()             # Positional arguments
+CONTEXT_POS=below      # --context-above sets this to above
 CONTEXT_DIRS=()        # --dir
 RUNNER=ask-llm         # --dry-run|-n sets this to maybe-tee
 CONTEXT_FILES=()       # --file
 INTERACTIVE=false      # --interactive|-i
 MODEL=""               # --model|-m
-EVALUATOR=eval-prompt  # --oneshot|-o sets this to cat
 ONESHOT=false          # --oneshot|-o
+EVALUATOR=eval-prompt  # --oneshot|-o and also --paste sets this to cat
+PASTE=false            # --paste
 TEE_FILE=""            # --tee
 VARIABLES=()           # --var|-v
 
 ################
 # Associations #
 
-declare -A MODELS=(
+declare -Ar MODELS=(
   [codestral]=openrouter:mistralai/codestral-2501
   [gemini]=openrouter:google/gemini-2.0-flash-001
+  [gemini-pro]=openrouter:google/gemini-2.0-pro-exp-02-05:free
   [haiku]=openrouter:anthropic/claude-3-haiku
   [r1]=openrouter:deepseek/deepseek-r1
   [sonnet]=openrouter:anthropic/claude-3.7-sonnet
@@ -187,6 +192,7 @@ Usage: $0 PROMPT [ARGS...] [OPTIONS]
 Dispatch prompts to an LLM.
 
 Options:
+  --context-above     Put the context files and dir above the instructions
   --dir DIR           Include all files in directory as context
   --dry-run|-n        Print interpolated prompt without sending to LLM
   --file FILE         Include specific file(s) as context
@@ -195,6 +201,7 @@ Options:
   --list|-l           List all available prompts
   --model|-m MODEL    Model name (default is $DEFAULT_MODEL, prompts may have their own default)
   --oneshot|-o        Use positional arguments as the prompt (which is not evaluated)
+  --paste             Use the content of the clipboard as the prompt (which is not evaluated)
   --tee FILE          Output to both stdout and FILE (overwrites)
   --var|-v KEY=VALUE  Set variables for prompt interpolation
 
@@ -221,7 +228,7 @@ function context-cat(){
 # Print context files and directories.
 function context() {
   local -r out=$(__context)
-  [[ -n $out ]] && { echo -e '\n# Additional context (files)'; echo "$out"; }
+  [[ -n $out ]] && echo -e "# Additional context (files)\n$out"
 }
 
 function __context() {
@@ -244,7 +251,10 @@ function __context() {
 
 # Resolve prompt source.
 function prompt() {
-  if [[ $ONESHOT == true ]]; then
+  if [[ $PASTE == true ]]; then
+    xclip -selection clipboard -o
+    echo
+  elif [[ $ONESHOT == true ]]; then
     echo "${POSARGS[@]}"
   else
     echo "${PROMPTS[$PROMPT]}"
@@ -288,8 +298,15 @@ EOF
 }
 
 function generate-prompt() {
+  if [[ $CONTEXT_POS == above ]]; then
+    context; echo; echo
+  fi
+
   prompt | $EVALUATOR
-  context
+
+  if [[ $CONTEXT_POS == below ]]; then
+    echo; echo; context
+  fi
 }
 
 ###########
@@ -338,6 +355,11 @@ function ask-llm() {
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
+    --context-above)
+      shift
+      CONTEXT_POS=above
+      ;;
+
     --dir)
       shift
       while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^-.* ]]; do
@@ -384,6 +406,12 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
 
+    --paste)
+      EVALUATOR=cat
+      PASTE=true
+      shift
+      ;;
+
     --tee)
       [[ $# -gt 1 ]] || die 'Missing value after --tee'
       TEE_FILE="$2"
@@ -406,13 +434,18 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ "${#POSARGS[@]}" -eq 0 ]]; then
+if [[ $PASTE == true && $ONESHOT == true ]]; then
+  die --paste and --oneshot are mutually exclusive
+fi
+
+# Positional arguments are required, except When paste is given.
+if [[ $PASTE == false && "${#POSARGS[@]}" -eq 0 ]]; then
   usage | err ''
   die No positional arguments provided.
 fi
 
-# For oneshot prompts, positional arguments are used as the prompt.
-if [[ $ONESHOT == false ]]; then
+# By default, the first argument is the prompt name.
+if [[ $ONESHOT == false && $PASTE == false ]]; then
   PROMPT="${POSARGS[0]}"
   POSARGS=("${POSARGS[@]:1}")
 fi
@@ -423,3 +456,6 @@ fi
 [[ -z $PROMPT ]] || [[ -v "PROMPTS[$PROMPT]" ]] || die "Unknown prompt $PROMPT"
 
 main
+
+exit 0 # Needed to prevent bash to keep reading when the file changed.
+}
