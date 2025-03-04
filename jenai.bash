@@ -289,11 +289,12 @@ function eval-prompt() {
   
   # The allexport option allows this bash interpreter to have access to everything we defined and
   # evapolate the prompts.
-  cat <<EOF | env bash
+  source <(cat <<EOF
 cat <<$delim
 $prompt
 $delim
 EOF
+)
 }
 
 function generate-prompt() {
