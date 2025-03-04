@@ -66,6 +66,9 @@ $(ins-commit-msg)
 # Diffs
 
 $(git diff --staged)'
+  [project-graph]='$(project-graph)
+
+${POSARGS[@]}'
   [test]='Count the files:
 $(ls)'
 )
@@ -140,6 +143,23 @@ For the optional long description:
 
 function perins-jaded-review() {
   per-jaded-dev; echo; echo; ins-code-review
+}
+
+function project-graph() {
+  echo "# Instructions
+
+I will present an idea.
+Ask me one question at a time about this idea so we can develop a simple, flexible plan than can later be expanded and adapted if needed.
+
+Each question should build on my previous answers, and our end goal is to have:
+ 1. A set of steps.
+ 2. A simple identifier for each step (human readable using kebab-case).
+ 3. And a dependency graph between the identifiers.
+
+Let’s do this iteratively and not go into the details, we want to create a flexible outline than can later be refined in a just-in-time manner.
+Remember, only one question at a time.
+
+# Idea"
 }
 
 ##############
