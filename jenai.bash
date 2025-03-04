@@ -29,6 +29,7 @@ MODEL=""               # --model|-m
 ONESHOT=false          # --oneshot|-o
 EVALUATOR=eval-prompt  # --oneshot|-o and also --paste sets this to cat
 PASTE=false            # --paste
+SESSION=""             # --session
 TEE_FILE=""            # --tee
 VARIABLES=()           # --var|-v
 
@@ -40,7 +41,7 @@ declare -Ar MODELS=(
   [gemini]=openrouter:google/gemini-2.0-flash-001
   [gemini-pro]=openrouter:google/gemini-2.0-pro-exp-02-05:free
   [haiku]=openrouter:anthropic/claude-3-haiku
-  [r1]=openrouter:deepseek/deepseek-r1
+  [r1]=openrouter:deepseek/deepseek-r1:nitro
   [sonnet]=openrouter:anthropic/claude-3.7-sonnet
   [r1-70]=openrouter:deepseek/deepseek-r1-distill-llama-70b:free
   [qwco]=openrouter:qwen/qwen-2.5-coder-32b-instruct
@@ -179,9 +180,6 @@ function maybe-cat() {
   fi
 }
 
-#################
-# Git utilities #
-
 ##################
 # Help functions #
 
@@ -202,6 +200,7 @@ Options:
   --model|-m MODEL    Model name (default is $DEFAULT_MODEL, prompts may have their own default)
   --oneshot|-o        Use positional arguments as the prompt (which is not evaluated)
   --paste             Use the content of the clipboard as the prompt (which is not evaluated)
+  --session SESSION   Reuse or create a specific session name
   --tee FILE          Output to both stdout and FILE (overwrites)
   --var|-v KEY=VALUE  Set variables for prompt interpolation
 
@@ -309,6 +308,13 @@ function generate-prompt() {
   fi
 }
 
+function __aichat() {
+  local -r session="$1"; shift
+  aichat\
+    --model "$(model)"\
+    --session "$session" --save-session "$@"
+}
+
 ###########
 # Runners #
 
@@ -320,23 +326,34 @@ function main() {
 # Sends stdin to the model.
 function ask-llm() {
   local -r session_dir=".jenai/session"
-  local -r session=$(unique-file-prefix $session_dir $(date +"%Y-%m-%d_%Hh%Mm") .yaml)
+  local session
+  if [[ -n $SESSION ]]; then
+    session="$SESSION"
+  else
+    session=$(unique-file-prefix $session_dir $(date +"%Y-%m-%d_%Hh%Mm") .yaml)
+  fi
   local -r session_yaml="$session_dir/$session.yaml"
 
   mkdir -p "$session_dir"
 
-  # Non-interactive session for the first question.
-  AICHAT_SESSIONS_DIR="$session_dir" aichat --model "$(model)" --save-session --session $session
+  export AICHAT_COMPRESS_THRESHOLD=10000
+  export AICHAT_SESSIONS_DIR="$session_dir"
 
-  # Cannot tee immediately or it disabled syntactic coloration.
+  # If there's a prompt, execute it non-interactively.
+  local -r prompt=$(maybe-cat)
+  # echo "$prompt"; echo "${POSARGS[@]}"; exit 498
+  if [[ -n $prompt ]]; then
+    echo "$prompt" | __aichat "$session"
+  fi
+
+  # Cannot tee immediately or it disables syntactic coloration.
   if [[ -n $TEE_FILE ]]; then
     yq -r '.messages[-1].content' "$session_yaml" > "$TEE_FILE"
   fi
 
-  # If asked, the session is resumed interactively.
-  if [[ $INTERACTIVE == true ]]; then
-    # stdin is "spent", so this call should be interactive.
-    AICHAT_SESSIONS_DIR="$session_dir" aichat --model "$(model)" --save-session --session $session
+  # If asked (or a specific session was asked without a prompt), the session is resumed interactively.
+  if [[ $INTERACTIVE == true || ( -n $SESSION && -z $prompt ) ]]; then
+    __aichat "$session"
   fi
   
   err ''
@@ -412,6 +429,12 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
 
+    --session)
+      [[ $# -gt 1 ]] || die 'Missing value after --session'
+      SESSION="$2"
+      shift; shift
+      ;;
+
     --tee)
       [[ $# -gt 1 ]] || die 'Missing value after --tee'
       TEE_FILE="$2"
@@ -426,7 +449,7 @@ while [[ $# -gt 0 ]]; do
       done
       ;;
 
-    *) # TODO: provide mechanism to make the posargs convenient to process inside prompts.
+    *)
       [[ "$1" == -* ]] && die "Unrecognized option: $1"
       POSARGS+=("$1")
       shift
