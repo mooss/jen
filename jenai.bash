@@ -14,6 +14,8 @@ set -o allexport
 ####################
 
 DEFAULT_MODEL=gemini
+# Will hold the full name of the model to execute, whether it is the default or specified one.
+ACTUAL_MODEL=
 
 #############
 # Arguments #
@@ -25,7 +27,7 @@ CONTEXT_DIRS=()        # --dir
 RUNNER=ask-llm         # --dry-run|-n sets this to maybe-tee
 CONTEXT_FILES=()       # --file
 INTERACTIVE=false      # --interactive|-i
-MODEL=""               # --model|-m
+SPECIFIED_MODEL=""     # --model|-m
 ONESHOT=false          # --oneshot|-o
 EVALUATOR=eval-prompt  # --oneshot|-o and also --paste sets this to cat
 PASTE=false            # --paste
@@ -280,11 +282,6 @@ function prompt() {
   fi
 }
 
-# Resolve full model name.
-function model() {
-  echo "${MODELS[$MODEL]}"
-}
-
 function unique-file-prefix() {
   local -r directory="$1"
   local -r prefix="$2"
@@ -330,9 +327,9 @@ function generate-prompt() {
 }
 
 function __aichat() {
-  local -r session="$1"; shift
+  local -r session="$1"; model="$2"; shift; shift
   aichat\
-    --model "$(model)"\
+    --model "$model"\
     --session "$session" --save-session "$@"
 }
 
@@ -354,17 +351,22 @@ function ask-llm() {
     session=$(unique-file-prefix $session_dir $(date +"%Y-%m-%d_%Hh%Mm") .yaml)
   fi
   local -r session_yaml="$session_dir/$session.yaml"
+  export AICHAT_COMPRESS_THRESHOLD=10000
+  export AICHAT_SESSIONS_DIR="$session_dir"
 
   mkdir -p "$session_dir"
 
-  export AICHAT_COMPRESS_THRESHOLD=10000
-  export AICHAT_SESSIONS_DIR="$session_dir"
+  # Only override an existing session model if it was explicitly speficied.
+  local model=$ACTUAL_MODEL
+  if [[ -z $SPECIFIED_MODEL && -f $session_yaml ]]; then
+    model=$(yq -r .model "$session_yaml")
+  fi
 
   # If there's a prompt, execute it non-interactively.
   local -r prompt=$(maybe-cat)
   # echo "$prompt"; echo "${POSARGS[@]}"; exit 498
   if [[ -n $prompt ]]; then
-    echo "$prompt" | __aichat "$session"
+    echo "$prompt" | __aichat "$session" "$model"
   fi
 
   # Cannot tee immediately or it disables syntactic coloration.
@@ -374,7 +376,7 @@ function ask-llm() {
 
   # If asked (or a specific session was asked without a prompt), the session is resumed interactively.
   if [[ $INTERACTIVE == true || ( -n $SESSION && -z $prompt ) ]]; then
-    __aichat "$session"
+    __aichat "$session" "$model"
   fi
   
   err ''
@@ -434,7 +436,7 @@ while [[ $# -gt 0 ]]; do
 
     --model|-m)
       [[ $# -gt 1 ]] || die 'Missing value after -m|--model'
-      MODEL="$2"
+      SPECIFIED_MODEL="$2"
       shift; shift
       ;;
 
@@ -495,8 +497,10 @@ if [[ $ONESHOT == false && $PASTE == false ]]; then
 fi
 
 # Set defaults and verify values.
-[[ -z $MODEL ]] && MODEL=$DEFAULT_MODEL
-[[ -v "MODELS[$MODEL]" ]] || die "Unknown model $MODEL"
+ACTUAL_MODEL=$DEFAULT_MODEL
+[[ -n $SPECIFIED_MODEL ]] && ACTUAL_MODEL=$SPECIFIED_MODEL
+[[ -v "MODELS[$ACTUAL_MODEL]" ]] || die "Unknown model $ACTUAL_MODEL"
+ACTUAL_MODEL="${MODELS[$ACTUAL_MODEL]}"
 [[ -z $PROMPT ]] || [[ -v "PROMPTS[$PROMPT]" ]] || die "Unknown prompt $PROMPT"
 
 main
