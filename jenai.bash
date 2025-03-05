@@ -512,6 +512,7 @@ ACTUAL_MODEL="${MODELS[$ACTUAL_MODEL]}"
 
 # Handle /last special session value.
 if [[ $SESSION == "/last" ]]; then
+  [[ -d $SESSION_DIR ]] || die "Cannot find latest session, there is no session dir"
   SESSION=$(basename "$(get-latest-session)" .yaml)
   [[ -n $SESSION ]] || die "No previous session found"
   err "Last session is $SESSION."
