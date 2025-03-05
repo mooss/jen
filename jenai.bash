@@ -484,10 +484,16 @@ if [[ $PASTE == true && $ONESHOT == true ]]; then
   die --paste and --oneshot are mutually exclusive
 fi
 
-# Positional arguments are required, except When paste is given.
+# Positional arguments are required, except when --paste is given.
 if [[ $PASTE == false && "${#POSARGS[@]}" -eq 0 ]]; then
-  usage | err ''
-  die No positional arguments provided.
+  # They are also not required when an existing session has been specified.
+  # The problem is that we don't know if it exists, but that will do for now.
+  if [[ -n $SESSION ]]; then
+    ONESHOT=true # Will feed an empty prompt.
+  else
+    usage | err ''
+    die No positional arguments provided.
+  fi
 fi
 
 # By default, the first argument is the prompt name.
