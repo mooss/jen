@@ -12,7 +12,14 @@ set -euo pipefail
 declare -r DEFAULT_MODEL=gemini
 # Will hold the full name of the model to execute, whether it is the default or specified one.
 ACTUAL_MODEL=
-declare -r SESSION_DIR=".jenai/session"
+
+# Find the git repo root if in a git repository, otherwise use current directory.
+declare -r GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+if [[ -n $GIT_ROOT ]] then
+  declare -r SESSION_DIR="${GIT_ROOT}/.jenai/session"
+else
+  declare -r SESSION_DIR=".jenai/session"
+fi
 
 #############
 # Arguments #
@@ -508,7 +515,6 @@ ACTUAL_MODEL=$DEFAULT_MODEL
 [[ -v "MODELS[$ACTUAL_MODEL]" ]] || die "Unknown model $ACTUAL_MODEL"
 ACTUAL_MODEL="${MODELS[$ACTUAL_MODEL]}"
 [[ -z $PROMPT ]] || [[ -v "PROMPTS[$PROMPT]" ]] || die "Unknown prompt $PROMPT"
-
 
 # Handle /last special session value.
 if [[ $SESSION == "/last" ]]; then
