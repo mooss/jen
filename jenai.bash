@@ -13,9 +13,10 @@ set -o allexport
 # Global variables #
 ####################
 
-DEFAULT_MODEL=gemini
+declare -r DEFAULT_MODEL=gemini
 # Will hold the full name of the model to execute, whether it is the default or specified one.
 ACTUAL_MODEL=
+declare -r SESSION_DIR=".jenai/session"
 
 #############
 # Arguments #
@@ -74,10 +75,6 @@ ${POSARGS[@]}'
   [test]='Count the files:
 $(ls)'
 )
-
-#############
-# Functions #
-#############
 
 ###########
 # Prompts #
@@ -164,6 +161,10 @@ Remember, only one question at a time.
 # Idea"
 }
 
+#############
+# Functions #
+#############
+
 ##############
 # Primitives #
 
@@ -222,7 +223,7 @@ Options:
   --model|-m MODEL    Model name (default is $DEFAULT_MODEL, prompts may have their own default)
   --oneshot|-o        Use positional arguments as the prompt (which is not evaluated)
   --paste             Use the content of the clipboard as the prompt (which is not evaluated)
-  --session SESSION   Reuse or create a specific session name
+  --session SESSION   Reuse or create a specific session name (/last for most recent session)
   --tee FILE          Output to both stdout and FILE (overwrites)
   --var|-v KEY=VALUE  Set variables for prompt interpolation
 
@@ -231,8 +232,8 @@ $(for model in "${!MODELS[@]}"; do echo " - $model"; done)
 EOF
 }
 
-######################
-# Prompt evapolation #
+########################
+# Prompt interpolation #
 
 # Concatenate a file, prefixed with its filename.
 function context-cat(){
@@ -297,6 +298,11 @@ function unique-file-prefix() {
   echo "$unique"
 }
 
+# Get the most recent session file
+function get-latest-session() {
+  find "$SESSION_DIR" -name "*.yaml" -type f -print0 | xargs -0 ls -t 2>/dev/null | head -n1
+}
+
 # Evaluate stdin as a prompt.
 function eval-prompt() {
   local -r prompt=$(cat)
@@ -305,7 +311,7 @@ function eval-prompt() {
   local -r delim=$(openssl rand -hex 16)$(echo "$prompt" | sha512sum - | sed -r 's/^([0-9a-f]+).*/\1/')
   
   # The allexport option allows this bash interpreter to have access to everything we defined and
-  # evapolate the prompts.
+  # interpolate the prompts.
   source <(cat <<EOF
 cat <<$delim
 $prompt
@@ -343,18 +349,17 @@ function main() {
 
 # Sends stdin to the model.
 function ask-llm() {
-  local -r session_dir=".jenai/session"
   local session
   if [[ -n $SESSION ]]; then
     session="$SESSION"
   else
-    session=$(unique-file-prefix $session_dir $(date +"%Y-%m-%d_%Hh%Mm") .yaml)
+    session=$(unique-file-prefix $SESSION_DIR $(date +"%Y-%m-%d_%Hh%Mm") .yaml)
   fi
-  local -r session_yaml="$session_dir/$session.yaml"
+  local -r session_yaml="$SESSION_DIR/$session.yaml"
   export AICHAT_COMPRESS_THRESHOLD=10000
-  export AICHAT_SESSIONS_DIR="$session_dir"
+  export AICHAT_SESSIONS_DIR="$SESSION_DIR"
 
-  mkdir -p "$session_dir"
+  mkdir -p "$SESSION_DIR"
 
   # Only override an existing session model if it was explicitly speficied.
   local model=$ACTUAL_MODEL
@@ -364,7 +369,6 @@ function ask-llm() {
 
   # If there's a prompt, execute it non-interactively.
   local -r prompt=$(maybe-cat)
-  # echo "$prompt"; echo "${POSARGS[@]}"; exit 498
   if [[ -n $prompt ]]; then
     echo "$prompt" | __aichat "$session" "$model"
   fi
@@ -464,7 +468,7 @@ while [[ $# -gt 0 ]]; do
       shift; shift
       ;;
 
-    --var|-v) # TODO: Export the variable to the evapolater to make them available in the prompts.
+    --var|-v)
       shift
       while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^-.* ]]; do
         VARIABLES+=("$1")
@@ -492,7 +496,7 @@ if [[ $PASTE == false && "${#POSARGS[@]}" -eq 0 ]]; then
     ONESHOT=true # Will feed an empty prompt.
   else
     usage | err ''
-    die No positional arguments provided.
+    die No positional arguments provided
   fi
 fi
 
@@ -508,6 +512,14 @@ ACTUAL_MODEL=$DEFAULT_MODEL
 [[ -v "MODELS[$ACTUAL_MODEL]" ]] || die "Unknown model $ACTUAL_MODEL"
 ACTUAL_MODEL="${MODELS[$ACTUAL_MODEL]}"
 [[ -z $PROMPT ]] || [[ -v "PROMPTS[$PROMPT]" ]] || die "Unknown prompt $PROMPT"
+
+
+# Handle /last special session value.
+if [[ $SESSION == "/last" ]]; then
+  SESSION=$(basename "$(get-latest-session)" .yaml)
+  [[ -n $SESSION ]] || die "No previous session found"
+  err "Last session is $SESSION."
+fi
 
 main
 
