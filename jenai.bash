@@ -5,10 +5,6 @@
 # Strict mode.
 set -euo pipefail
 
-# Automatically export all functions and variables.
-# This is what allows prompt interpretation to work.
-set -o allexport
-
 ####################
 # Global variables #
 ####################
