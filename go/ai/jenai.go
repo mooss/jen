@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/mooss/bagend/go/flag"
+	"github.com/mooss/jen/go/prompts"
 )
 
 type Config struct {
@@ -19,7 +21,8 @@ type Config struct {
 	Paste        bool
 	Session      string
 	TeeFile      string
-	Prompt       string
+	PromptName   string
+	RawPrompt    string
 	Positional   []string
 }
 
@@ -29,9 +32,13 @@ func fatal(err error) {
 }
 
 func main() {
+	/////////////////////////////////
+	// Declare and parse arguments //
+
 	var (
 		cfg  Config
 		list bool
+		err  error
 	)
 
 	parser := flag.NewParser()
@@ -58,20 +65,47 @@ func main() {
 
 	cfg.Positional = parser.Positional
 
-	// Shift prompt name if not in oneshot or paste mode.
-	if !cfg.OneShot && !cfg.Paste && len(cfg.Positional) > 0 {
-		cfg.Prompt = cfg.Positional[0]
-		cfg.Positional = cfg.Positional[1:]
+	/////////////////////////////
+	// Highjack execution flow //
+	// That is to handle the flags that trigger an action and exit immediately.
+
+	if list {
+		for name := range prompts.Map {
+			fmt.Println(name)
+		}
+		os.Exit(0)
 	}
+
+	////////////////////////////////////
+	// Validate and process arguments //
 
 	// Validate mutual exclusivity.
 	if cfg.Paste && cfg.OneShot {
-		fmt.Println("Error: --paste and --oneshot are mutually exclusive")
-		os.Exit(1)
+		fatal(errors.New("Error: --paste and --oneshot are mutually exclusive"))
 	}
 
-	if cfg.Session == "/last" {
-		fmt.Println("Warning: /last session handling not yet implemented")
+	// Validate that positional arguments are provided when needed.
+	if !cfg.Paste && len(cfg.Positional) == 0 && cfg.Session == "" {
+		fatal(errors.New("Error: No positional arguments provided"))
+	}
+
+	if !cfg.OneShot && !cfg.Paste && len(cfg.Positional) > 0 {
+		// Shift prompt name.
+		cfg.PromptName = cfg.Positional[0]
+		cfg.Positional = cfg.Positional[1:]
+
+		cfg.RawPrompt, err = prompts.Raw(cfg.PromptName)
+		if err != nil {
+			fatal(err)
+		}
+	}
+
+	/////////////////////
+	// Execution logic //
+
+	if cfg.DryRun {
+		fmt.Println(cfg.RawPrompt)
+		os.Exit(0)
 	}
 
 	pretty, err := json.MarshalIndent(cfg, "", "  ")
