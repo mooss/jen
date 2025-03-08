@@ -16,7 +16,7 @@ func fatal(err error) {
 
 func main() {
 	cfg := config.Jenai{}
-	if err := cfg.Parse(os.Args[1:]); err != nil {
+	if err := cfg.ParseCLI(os.Args[1:]); err != nil {
 		fatal(err)
 	}
 
@@ -34,7 +34,7 @@ func main() {
 	/////////////////////
 	// Execution logic //
 
-	prompt, err := cfg.RawPrompt()
+	prompt, err := cfg.BuildPrompt()
 	if err != nil {
 		fatal(err)
 	}
