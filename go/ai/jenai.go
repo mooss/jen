@@ -10,17 +10,10 @@ import (
 	"github.com/mooss/jen/go/ai/prompts"
 )
 
-func fatal(err error) {
-	fmt.Println("Error:", err)
-	os.Exit(1)
-}
-
 func main() {
-	cfg := config.Jenai{}
-	parser := cfg.RegisterCLI()
-	flag.WithHelp(os.Args[0], "PROMPT ...ARGS")(parser)
+	cfg, parser := conf()
 
-	if len(os.Args) == 1 {
+	if len(os.Args) == 1 { // No arguments, print help.
 		fmt.Print(parser.Help())
 		os.Exit(0)
 	}
@@ -40,9 +33,23 @@ func main() {
 		os.Exit(0)
 	}
 
-	/////////////////////
-	// Execution logic //
+	exec(cfg)
+}
 
+func conf() (*config.Jenai, *flag.Parser) {
+	cfg := config.Jenai{}
+	parser := cfg.RegisterCLI()
+	flag.WithHelp(os.Args[0], "PROMPT ...ARGS")(parser)
+
+	return &cfg, parser
+}
+
+func fatal(err error) {
+	fmt.Println("Error:", err)
+	os.Exit(1)
+}
+
+func exec(cfg *config.Jenai) {
 	prompt, err := cfg.BuildPrompt()
 	if err != nil {
 		fatal(err)
