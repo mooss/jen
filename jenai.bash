@@ -37,7 +37,6 @@ EVALUATOR=eval-prompt  # --oneshot|-o and also --paste sets this to cat
 PASTE=false            # --paste
 SESSION=""             # --session
 TEE_FILE=""            # --tee
-VARIABLES=()           # --var|-v
 
 ################
 # Associations #
@@ -228,7 +227,6 @@ Options:
   --paste             Use the content of the clipboard as the prompt (which is not evaluated)
   --session SESSION   Reuse or create a specific session name (/last for most recent session)
   --tee FILE          Output to both stdout and FILE (overwrites)
-  --var|-v KEY=VALUE  Set variables for prompt interpolation
 
 Available models:
 $(for model in "${!MODELS[@]}"; do echo " - $model"; done)
@@ -469,14 +467,6 @@ while [[ $# -gt 0 ]]; do
       [[ $# -gt 1 ]] || die 'Missing value after --tee'
       TEE_FILE="$2"
       shift; shift
-      ;;
-
-    --var|-v)
-      shift
-      while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^-.* ]]; do
-        VARIABLES+=("$1")
-        shift
-      done
       ;;
 
     *)
