@@ -1,0 +1,53 @@
+package config_test
+
+import (
+	"testing"
+
+	"github.com/mooss/jen/go/ai/config"
+)
+
+func TestPromptMode(t *testing.T) {
+	tests := []struct {
+		name     string
+		jen      config.Jenai
+		expected bool
+	}{
+		{"Prompt mode", config.Jenai{}, true},
+		{"OneShot mode", config.Jenai{OneShot: true}, false},
+		{"Paste mode", config.Jenai{Paste: true}, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.jen.PromptMode()
+			if result != tt.expected {
+				t.Errorf("Expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestRawPrompt(t *testing.T) {
+	jen := config.Jenai{PromptName: "test"}
+	prompt, err := jen.RawPrompt()
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expected := "Count the files:\n$(ls)"
+	if prompt != expected {
+		t.Errorf("Expected:\n%s\nGot:\n%s", expected, prompt)
+	}
+}
+
+func TestConfigValidation(t *testing.T) {
+	cfg := config.Jenai{
+		Paste:   true,
+		OneShot: true,
+	}
+
+	err := cfg.Validate()
+	if err == nil {
+		t.Error("Expected error for mutually exclusive flags, got nil")
+	}
+}
