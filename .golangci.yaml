@@ -1,0 +1,29 @@
+linters:
+  enable:
+    - errcheck
+    - gofmt
+    - govet
+    - staticcheck
+    - typecheck
+    - unused
+    - revive
+    - dupword
+  # enable-all: true
+
+linters-settings:
+  revive:
+    enable-all-rules: true
+    rules:
+      # Configuration of enabled rules.
+      - name: line-length-limit
+        arguments: [100]
+
+      # Disabled rules.
+      - name: add-constant
+        disabled: true
+      - name: comment-spacings
+        disabled: true
+      - name: confusing-naming
+        disabled: true
+      - name: deep-exit
+        disabled: true

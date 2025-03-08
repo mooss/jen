@@ -48,7 +48,8 @@ func (conf *Jenai) ParseCLI(args []string) error {
 	parser.Bool("oneshot", &conf.OneShot, "Use positional arguments as the prompt").
 		Alias("o")
 	parser.Bool("paste", &conf.Paste, "Use clipboard content as prompt")
-	parser.String("session", &conf.Session, "Reuse or create specific session name (/last for most recent session)")
+	parser.String("session", &conf.Session,
+		"Reuse or create specific session name (/last for most recent session)")
 	parser.String("tee", &conf.TeeFile, "Output to both stdout and FILE")
 
 	if err := parser.Parse(args); err != nil {
