@@ -56,21 +56,15 @@ declare -Ar MODELS=(
 declare -A PROMPTS=(
   [review-diff]='$(perins-jaded-review)
 
-# Diffs
-
-$(git diff HEAD^ HEAD)'
+$(git-diff HEAD^ HEAD)'
   [review-staged]='$(perins-jaded-review)
 
-# Diffs
-
-$(git diff --staged)'
+$(git-diff --staged)'
   [commit-message]='$(per-jaded-dev)
 
 $(ins-commit-msg)
 
-# Diffs
-
-$(git diff --staged)'
+$(git-diff --staged)'
   [project-graph]='$(project-graph)
 
 ${POSARGS[@]}'
@@ -93,15 +87,7 @@ You are extremely factual and to the point."
 function ins-code-review() {
   echo "# Instructions
 
-You are reviewing code, be on the lookout for:
- - Logic errors and potential bugs.
- - Performance bottlenecks and inefficient algorithms.
- - Security vulnerabilities (e.g., injection flaws, insecure data handling).
- - Code clarity and maintainability (adherence to style guide, complex logic).
- - Missing error handling or edge case coverage.
- - Adherence to best practices (for programming language or framework).
- - Out-of-place print statement.
- - Any indication that something is not finished (like \`TODO:\` or \`WIP\` comments).
+You are reviewing code.
 
 Do not explain the changes that have been made.
 I know what they are, I made them!
@@ -161,6 +147,20 @@ Let’s do this iteratively and not go into the details, we want to create a fle
 Remember, only one question at a time.
 
 # Idea"
+}
+
+function git-diff() {
+  echo '# Diff
+
+## How to read
+
+Lines starting with \`-\` are present in the original file but removed in the new version.
+Lines starting with \`+\` are added in the new version.
+Lines starting with a space are unchanged context lines present in both versions.
+
+## Diff included below
+'
+  git diff "$@"
 }
 
 #############
