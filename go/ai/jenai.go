@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mooss/bagend/go/flag"
 	"github.com/mooss/jen/go/ai/config"
 	"github.com/mooss/jen/go/ai/prompts"
 )
@@ -16,7 +17,15 @@ func fatal(err error) {
 
 func main() {
 	cfg := config.Jenai{}
-	if err := cfg.ParseCLI(os.Args[1:]); err != nil {
+	parser := cfg.RegisterCLI()
+	flag.WithHelp(os.Args[0], "PROMPT ...ARGS")(parser)
+
+	if len(os.Args) == 1 {
+		fmt.Print(parser.Help())
+		os.Exit(0)
+	}
+
+	if err := cfg.ParseCLI(parser, os.Args[1:]); err != nil {
 		fatal(err)
 	}
 

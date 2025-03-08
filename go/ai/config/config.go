@@ -31,8 +31,7 @@ type Jenai struct {
 	rawPositional []string
 }
 
-// ParseCLI fills the fields from CLI arguments.
-func (conf *Jenai) ParseCLI(args []string) error {
+func (conf *Jenai) RegisterCLI() *flag.Parser {
 	parser := flag.NewParser()
 	parser.Bool("context-above", &conf.ContextAbove, "Put context files and dir above instructions")
 	parser.StringSlice("dir", &conf.ContextDirs, "Include all files in directory as context")
@@ -52,6 +51,11 @@ func (conf *Jenai) ParseCLI(args []string) error {
 		"Reuse or create specific session name (/last for most recent session)")
 	parser.String("tee", &conf.TeeFile, "Output to both stdout and FILE")
 
+	return parser
+}
+
+// ParseCLI fills the fields from CLI arguments.
+func (conf *Jenai) ParseCLI(parser *flag.Parser, args []string) error {
 	if err := parser.Parse(args); err != nil {
 		return err
 	}
