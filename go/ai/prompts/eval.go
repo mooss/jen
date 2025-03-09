@@ -3,6 +3,7 @@ package prompts
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -17,10 +18,13 @@ type EvalContext struct {
 }
 
 func NewEvalContext(lib Library, args *[]string) *EvalContext {
-	return &EvalContext{
+	res := EvalContext{
 		Library:             lib,
 		PositionalArguments: args,
 	}
+	res.tmpl = template.New("prompt").Funcs(res.functions())
+
+	return &res
 }
 
 // Evaluate executes the requested prompt within the current context.
@@ -30,7 +34,6 @@ func (ctx *EvalContext) Evaluate(prompt string) (string, error) {
 		return "", err
 	}
 
-	ctx.tmpl = template.New("prompt").Funcs(ctx.functions())
 	return ctx.execute(content, nil)
 }
 
@@ -74,9 +77,9 @@ func gitCommand(args ...any) (string, error) {
 	}
 
 	cmd := exec.Command("git", strargs...)
-	output, err := cmd.Output()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("git %v failed: %w", strargs, err)
+		return "", fmt.Errorf("git %v failed: %w:\n%s", strargs, err, output)
 	}
 
 	return string(output), nil
@@ -120,7 +123,7 @@ func stringsFlat(args ...any) ([]string, error) {
 // additionally appended at the end.
 func (ctx *EvalContext) consumeArgs() ([]string, error) {
 	if len(*ctx.PositionalArguments) == 0 {
-		return nil, fmt.Errorf("no positional arguments")
+		return nil, errors.New("no positional arguments")
 	}
 
 	res := *ctx.PositionalArguments
@@ -149,7 +152,7 @@ func (ctx *EvalContext) instruction(name string, args ...any) (string, error) {
 }
 
 // section1 returns the section1 template with the given name and arguments.
-func (ctx *EvalContext) section1(name string, args ...string) (string, error) {
+func (ctx *EvalContext) section1(name string, args ...any) (string, error) {
 	content, exists := ctx.Section1[name]
 	if !exists {
 		return "", fmt.Errorf("unknown section1: %s", name)
