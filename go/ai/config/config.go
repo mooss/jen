@@ -13,19 +13,17 @@ import (
 
 type Jenai struct {
 	// Actual config.
-	ContextAbove bool
-	ContextDirs  []string
-	ContextFiles []string
-	DryRun       bool
-	Interactive  bool
-	List         bool
-	Model        string
-	OneShot      bool
-	Paste        bool
-	Positional   []string
-	PromptName   string
-	Session      string
-	TeeFile      string
+	Context     Context
+	DryRun      bool
+	Interactive bool
+	List        bool
+	Model       string
+	OneShot     bool
+	Paste       bool
+	Positional  []string
+	PromptName  string
+	Session     string
+	TeeFile     string
 
 	// Implementation details.
 	rawPositional []string
@@ -36,11 +34,12 @@ type Jenai struct {
 
 func (conf *Jenai) RegisterCLI() *flag.Parser {
 	parser := flag.NewParser()
-	parser.Bool("context-above", &conf.ContextAbove, "Put context files and dir above instructions")
-	parser.StringSlice("dir", &conf.ContextDirs, "Include all files in directory as context")
+	parser.Bool("context-above", &conf.Context.Above,
+		"Put context files and dir above instructions")
+	parser.StringSlice("dir", &conf.Context.Dirs, "Include all files in directory as context")
 	parser.Bool("dry-run", &conf.DryRun, "Print interpolated prompt without sending to LLM").
 		Alias("n")
-	parser.StringSlice("file", &conf.ContextFiles, "Include specific file(s) as context")
+	parser.StringSlice("file", &conf.Context.Files, "Include specific file(s) as context")
 	parser.Bool("interactive", &conf.Interactive, "Start an interactive aichat session").
 		Alias("i")
 	parser.Bool("list", &conf.List, "list all available prompts").
@@ -76,7 +75,7 @@ func (conf *Jenai) ParseCLI(parser *flag.Parser, args []string) error {
 }
 
 // Validate returns an error when the configuration is incoherent.
-func (conf Jenai) Validate() error {
+func (conf *Jenai) Validate() error {
 	// Validate mutual exclusivity.
 	if conf.Paste && conf.OneShot {
 		return errors.New("--paste and --oneshot are mutually exclusive")
@@ -97,7 +96,8 @@ func (conf Jenai) Validate() error {
 // positional argument).
 // Prompt and clipboard are mutually exclusive.
 // The prompt is evaluated.
-func (conf Jenai) BuildPrompt(lib prompts.Library) (string, error) {
+func (conf *Jenai) BuildPrompt(lib prompts.Library) (string, error) {
+	// Select primary source.
 	get := func() (string, error) {
 		return prompts.NewEvalContext(lib, &conf.Positional).Evaluate(conf.PromptName)
 	}
@@ -109,6 +109,7 @@ func (conf Jenai) BuildPrompt(lib prompts.Library) (string, error) {
 		get = ReadClipboard
 	}
 
+	// Add primary source.
 	buf := []string{}
 	if primary, err := get(); err != nil {
 		return "", err
@@ -116,11 +117,37 @@ func (conf Jenai) BuildPrompt(lib prompts.Library) (string, error) {
 		buf = append(buf, primary)
 	}
 
+	// Add positional arguments.
 	if len(conf.Positional) > 0 {
 		buf = append(buf, strings.Join(conf.Positional, " "))
 	}
 
+	// Add context files.
+	buf, err := conf.addContext(buf)
+	if err != nil {
+		return "", err
+	}
+
 	return strings.Join(buf, "\n\n"), nil
+}
+
+func (conf *Jenai) addContext(buf []string) ([]string, error) {
+	if conf.Context.Empty() {
+		return buf, nil
+	}
+
+	context, err := conf.Context.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	if conf.Context.Above {
+		buf = append([]string{context}, buf...)
+	} else {
+		buf = append(buf, context)
+	}
+
+	return buf, nil
 }
 
 /////////////////////
@@ -128,7 +155,7 @@ func (conf Jenai) BuildPrompt(lib prompts.Library) (string, error) {
 
 // PromptMode returns true when the configuration is in prompt mode (i.e. not in the special paste
 // or oneshot mode).
-func (conf Jenai) PromptMode() bool {
+func (conf *Jenai) PromptMode() bool {
 	return !conf.OneShot && !conf.Paste
 }
 
