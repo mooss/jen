@@ -4,8 +4,13 @@ nothing:
 	@echo -n 'jen '
 	@git rev-parse HEAD
 
-test:
+test: go-test bash-test
+
+go-test:
 	go test ./go/...
+
+bash-test:
+	./tests/context_tests.bash
 
 lint:
 	golangci-lint run ./go/...\
