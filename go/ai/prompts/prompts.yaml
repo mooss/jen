@@ -20,9 +20,9 @@ prompts:
 
     {{ sec1 "git_diff" "--staged" }}
   project_graph: |-
-    {{ per "idea-graph" }}
+    {{ ins "idea_graph" }}
 
-    {{ join (posargs) " " }}
+    {{ consume_args | join " " }}
 
 # Personas, rendered with `per` and prefixed by `# Persona`.
 personas:
@@ -81,6 +81,8 @@ instructions:
     Let's do this iteratively and not go into the details, we want to create a flexible outline than can later be refined in a just-in-time manner.
     Remember, only one question at a time.
 
+    # Idea
+
 # Sections of level 1, rendered by `sec1`.
 section1:
   git_diff: |-
@@ -94,4 +96,4 @@ section1:
 
     ## Diff included below
 
-    {{ git "diff" .Args }}
+    {{ git (strings "diff" .) }}

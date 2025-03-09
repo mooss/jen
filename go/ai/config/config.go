@@ -93,11 +93,15 @@ func (conf Jenai) Validate() error {
 //////////////////////////////
 // Other high-level methods //
 
-// BuildPrompt returns the complete prompt, taking into account all sources (prompt, clipboard and
+// BuildPrompt returns the complete prompt, taking all sources into account (prompt, clipboard and
 // positional argument).
 // Prompt and clipboard are mutually exclusive.
+// The prompt is evaluated.
 func (conf Jenai) BuildPrompt(lib prompts.Library) (string, error) {
-	get := func() (string, error) { return lib.Interpolate(conf.PromptName) }
+	get := func() (string, error) {
+		return prompts.NewEvalContext(lib, &conf.Positional).Evaluate(conf.PromptName)
+	}
+
 	switch {
 	case conf.OneShot:
 		get = func() (string, error) { return "", nil }

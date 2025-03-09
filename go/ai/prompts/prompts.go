@@ -30,12 +30,11 @@ func FromYAML(data []byte) (Library, error) {
 	return res, nil
 }
 
-// Interpolate loads the requested prompt and executes it.
-// Prompt execution is not implemented yet.
-func (lib Library) Interpolate(prompt string) (string, error) {
-	source, exists := lib.Prompts[prompt]
+// RawPrompt returns the content of requested prompt, if it exists.
+func (lib Library) RawPrompt(name string) (string, error) {
+	source, exists := lib.Prompts[name]
 	if !exists {
-		return "", fmt.Errorf("unknown prompt: %s", prompt)
+		return "", fmt.Errorf("unknown prompt: %s", name)
 	}
 
 	return source, nil
