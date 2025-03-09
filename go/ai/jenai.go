@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/mooss/bagend/go/flag"
 	"github.com/mooss/jen/go/ai/config"
@@ -18,6 +20,9 @@ func main() {
 		fmt.Print(parser.Help())
 		os.Exit(0)
 	}
+
+	dumpConfig := false
+	parser.Bool("dump-config", &dumpConfig, "print the config and exit")
 
 	noerr0(cfg.ParseCLI(parser, os.Args[1:]))
 
@@ -34,11 +39,21 @@ func main() {
 		os.Exit(0)
 	}
 
+	if dumpConfig {
+		spec := noerr(modelSpec(cfg))
+		fmt.Println("Model:", pretty(spec))
+		fmt.Println("Config:", pretty(cfg))
+		os.Exit(0)
+	}
+
 	///////////////
 	// Execution //
 
-	exec(cfg, library)
+	run(cfg, library)
 }
+
+//////////////////////////
+// High-level utilities //
 
 func conf() (*config.Jenai, *flag.Parser) {
 	cfg := config.Jenai{}
@@ -47,6 +62,37 @@ func conf() (*config.Jenai, *flag.Parser) {
 
 	return &cfg, parser
 }
+
+func run(cfg *config.Jenai, lib prompts.Library) {
+	noerr0(cfg.Validate())
+	prompt := noerr(cfg.BuildPrompt(lib))
+
+	if cfg.DryRun {
+		fmt.Println(prompt)
+		os.Exit(0)
+	}
+
+	spec := noerr(modelSpec(cfg))
+
+	// Send the prompt through aichat.
+	cmd := exec.Command("aichat", "--model", spec.Aichat())
+	cmd.Stdin = strings.NewReader(prompt)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	noerr0(cmd.Run())
+}
+
+func modelSpec(cfg *config.Jenai) (models.Spec, error) {
+	spec, exists := models.ModelSpecs[cfg.Model]
+	if !exists {
+		return spec, fmt.Errorf("unknown model: %s", cfg.Model)
+	}
+
+	return spec, nil
+}
+
+////////////////
+// Primitives //
 
 func fatal(err error) {
 	fmt.Println("Error:", err)
@@ -61,30 +107,6 @@ func noerr[T any](res T, err error) T {
 }
 
 func noerr0(err error) { noerr(0, err) }
-
-func exec(cfg *config.Jenai, lib prompts.Library) {
-	noerr0(cfg.Validate())
-	prompt := noerr(cfg.BuildPrompt(lib))
-
-	if cfg.DryRun {
-		fmt.Println(prompt)
-		os.Exit(0)
-	}
-
-	spec := noerr(modelSpec(cfg))
-
-	fmt.Println("Model:", pretty(spec))
-	fmt.Println("Config:", pretty(cfg))
-}
-
-func modelSpec(cfg *config.Jenai) (models.Spec, error) {
-	spec, exists := models.ModelSpecs[cfg.Model]
-	if !exists {
-		return spec, fmt.Errorf("unknown model: %s", cfg.Model)
-	}
-
-	return spec, nil
-}
 
 func pretty(data any) string {
 	return string(noerr(json.MarshalIndent(data, "", "  ")))
