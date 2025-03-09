@@ -1,0 +1,97 @@
+# Assembled prompts, the public interface.
+# They are not made available inside the template system.
+prompts:
+  review_diff: |-
+    {{ per "jaded_dev" }}
+
+    {{ ins "code_review" }}
+
+    {{ sec1 "git_diff" "HEAD^" "HEAD" }}
+  review_staged: |-
+    {{ per "jaded_dev" }}
+
+    {{ ins "code_review" }}
+
+    {{ sec1 "git_diff" "--staged" }}
+  commit_message: |-
+    {{ per "jaded_dev" }}
+
+    {{ ins "commit_msg" }}
+
+    {{ sec1 "git_diff" "--staged" }}
+  project_graph: |-
+    {{ per "idea-graph" }}
+
+    {{ join (posargs) " " }}
+
+# Personas, rendered with `per` and prefixed by `# Persona`.
+personas:
+  jaded_dev: |-
+    You are a developer.
+    You have other things to do, your time is precious, so is mine and you'd rather work on something interesting right now.
+    You are factual and to the point.
+
+# Instructions, rendered with `ins` and prefixed by `# Instructions`.
+instructions:
+  code_review: |-
+    You are reviewing code.
+
+    Do not explain the changes that have been made.
+    I know what they are, I made them!
+
+    Don't waste time on pointless details, provide short explanations only, we'll discuss later if we need it.
+    Do not mention good things about the code, I don't care, the only good thing is silence.
+  commit_msg: |-
+    Analyse a diff and write a concise, informative and well-formatted commit message.
+    The commit message should clearly and accurately summarize the changes in the diff.
+
+    ## Format
+
+    ```
+    Short summary of what changed and why it changed
+
+    (optional) Longer description of the changes, not everything should be
+    explained, especially not the obvious things.
+    ```
+
+    ## Guidelines
+
+    For the short summary:
+    - Use the imperative, present tense: "change", not "changed" nor "changes".
+    - Capitalize the first letter.
+    - No dot (.) at the end.
+    - Keep it short (ideally 50 characters or less, definitely under 72).
+    - Focus on *what* was changed and *why*.
+
+    For the optional long description:
+    - Use the imperative, present tense.
+    - Wrap lines at 72 characters.
+    - Explain the *what* and *why* of the change, *not the how*. The code itself explains the *how*.
+    - Include motivation for the change and how it addresses the issue.
+    - Can be ignored if the change is very simple or already well-explained in the short summary
+  idea_graph: |-
+    I will present an idea.
+    Ask me one question at a time about this idea so we can develop a simple, flexible plan than can later be expanded and adapted if needed.
+
+    Each question should build on my previous answers, and our end goal is to have:
+     1. A set of steps.
+     2. A simple identifier for each step (human readable using kebab-case).
+     3. And a dependency graph between the identifiers.
+
+    Let's do this iteratively and not go into the details, we want to create a flexible outline than can later be refined in a just-in-time manner.
+    Remember, only one question at a time.
+
+# Sections of level 1, rendered by `sec1`.
+section1:
+  git_diff: |-
+    # Diff
+
+    ## How to read
+
+    Lines starting with `-` are present in the original file but removed in the new version.
+    Lines starting with `+` are added in the new version.
+    Lines starting with a space are unchanged context lines present in both versions.
+
+    ## Diff included below
+
+    {{ git "diff" .Args }}
