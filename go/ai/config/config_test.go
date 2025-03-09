@@ -27,19 +27,6 @@ func TestPromptMode(t *testing.T) {
 	}
 }
 
-func TestRawPrompt(t *testing.T) {
-	jen := config.Jenai{PromptName: "test"}
-	prompt, err := jen.RawPrompt()
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-
-	expected := "Count the files:\n$(ls)"
-	if prompt != expected {
-		t.Errorf("Expected:\n%s\nGot:\n%s", expected, prompt)
-	}
-}
-
 func TestConfigValidation(t *testing.T) {
 	cfg := config.Jenai{
 		Paste:   true,

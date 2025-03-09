@@ -19,22 +19,25 @@ func main() {
 		os.Exit(0)
 	}
 
-	if err := cfg.ParseCLI(parser, os.Args[1:]); err != nil {
-		fatal(err)
-	}
+	noerr0(cfg.ParseCLI(parser, os.Args[1:]))
 
 	/////////////////////////////
 	// Highjack execution flow //
 	// That is to handle the flags that trigger an action and exit immediately.
 
+	library := noerr(prompts.Embedded())
+
 	if cfg.List {
-		for name := range prompts.Map {
+		for name := range library.Prompts {
 			fmt.Println(name)
 		}
 		os.Exit(0)
 	}
 
-	exec(cfg)
+	///////////////
+	// Execution //
+
+	exec(cfg, library)
 }
 
 func conf() (*config.Jenai, *flag.Parser) {
@@ -50,21 +53,26 @@ func fatal(err error) {
 	os.Exit(1)
 }
 
-func exec(cfg *config.Jenai) {
-	prompt, err := cfg.BuildPrompt()
+func noerr[T any](res T, err error) T {
 	if err != nil {
 		fatal(err)
 	}
+	return res
+}
+
+func noerr0(err error) { noerr(0, err) }
+
+func exec(cfg *config.Jenai, lib prompts.Library) {
+	noerr0(cfg.Validate())
+	prompt := noerr(cfg.BuildPrompt(lib))
 
 	if cfg.DryRun {
 		fmt.Println(prompt)
 		os.Exit(0)
 	}
 
-	spec, err := modelSpec(cfg)
-	if err != nil {
-		fatal(err)
-	}
+	spec := noerr(modelSpec(cfg))
+
 	fmt.Println("Model:", pretty(spec))
 	fmt.Println("Config:", pretty(cfg))
 }
@@ -79,10 +87,5 @@ func modelSpec(cfg *config.Jenai) (models.Spec, error) {
 }
 
 func pretty(data any) string {
-	pretty, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		fatal(err)
-	}
-
-	return string(pretty)
+	return string(noerr(json.MarshalIndent(data, "", "  ")))
 }

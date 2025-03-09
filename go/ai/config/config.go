@@ -72,19 +72,19 @@ func (conf *Jenai) ParseCLI(parser *flag.Parser, args []string) error {
 		conf.Positional = conf.Positional[1:]
 	}
 
-	return conf.Validate()
+	return nil
 }
 
 // Validate returns an error when the configuration is incoherent.
 func (conf Jenai) Validate() error {
 	// Validate mutual exclusivity.
 	if conf.Paste && conf.OneShot {
-		return errors.New("Error: --paste and --oneshot are mutually exclusive")
+		return errors.New("--paste and --oneshot are mutually exclusive")
 	}
 
 	// Validate that positional arguments are provided when needed.
 	if !conf.Paste && len(conf.rawPositional) == 0 && conf.Session == "" {
-		return errors.New("Error: No positional arguments provided")
+		return errors.New("No positional arguments provided")
 	}
 
 	return nil
@@ -96,8 +96,8 @@ func (conf Jenai) Validate() error {
 // BuildPrompt returns the complete prompt, taking into account all sources (prompt, clipboard and
 // positional argument).
 // Prompt and clipboard are mutually exclusive.
-func (conf Jenai) BuildPrompt() (string, error) {
-	get := conf.RawPrompt
+func (conf Jenai) BuildPrompt(lib prompts.Library) (string, error) {
+	get := func() (string, error) { return lib.Interpolate(conf.PromptName) }
 	switch {
 	case conf.OneShot:
 		get = func() (string, error) { return "", nil }
@@ -126,11 +126,6 @@ func (conf Jenai) BuildPrompt() (string, error) {
 // or oneshot mode).
 func (conf Jenai) PromptMode() bool {
 	return !conf.OneShot && !conf.Paste
-}
-
-// RawPrompt returns the raw, non-interpolated prompt.
-func (conf Jenai) RawPrompt() (string, error) {
-	return prompts.Raw(conf.PromptName)
 }
 
 ///////////////////////

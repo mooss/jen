@@ -14,6 +14,7 @@ type Spec struct {
 	Model string
 }
 
+//nolint:revive
 var ModelSpecs = map[string]Spec{
 	"codestral":  {Name: "codestral", Provider: "openrouter", Author: "mistralai", Model: "codestral-2501"},
 	"gemini":     {Name: "gemini", Provider: "openrouter", Author: "google", Model: "gemini-2.0-flash-001"},
