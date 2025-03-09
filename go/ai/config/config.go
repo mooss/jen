@@ -31,6 +31,9 @@ type Jenai struct {
 	rawPositional []string
 }
 
+/////////////////////////////////
+// Construction and validation //
+
 func (conf *Jenai) RegisterCLI() *flag.Parser {
 	parser := flag.NewParser()
 	parser.Bool("context-above", &conf.ContextAbove, "Put context files and dir above instructions")
@@ -87,16 +90,8 @@ func (conf Jenai) Validate() error {
 	return nil
 }
 
-// PromptMode returns true when the configuration is in prompt mode (i.e. not in the special paste
-// or oneshot mode).
-func (conf Jenai) PromptMode() bool {
-	return !conf.OneShot && !conf.Paste
-}
-
-// RawPrompt returns the raw, non-interpolated prompt.
-func (conf Jenai) RawPrompt() (string, error) {
-	return prompts.Raw(conf.PromptName)
-}
+//////////////////////////////
+// Other high-level methods //
 
 // BuildPrompt returns the complete prompt, taking into account all sources (prompt, clipboard and
 // positional argument).
@@ -123,6 +118,23 @@ func (conf Jenai) BuildPrompt() (string, error) {
 
 	return strings.Join(buf, "\n\n"), nil
 }
+
+/////////////////////
+// Utility methods //
+
+// PromptMode returns true when the configuration is in prompt mode (i.e. not in the special paste
+// or oneshot mode).
+func (conf Jenai) PromptMode() bool {
+	return !conf.OneShot && !conf.Paste
+}
+
+// RawPrompt returns the raw, non-interpolated prompt.
+func (conf Jenai) RawPrompt() (string, error) {
+	return prompts.Raw(conf.PromptName)
+}
+
+///////////////////////
+// Utility functions //
 
 // ReadClipboard returns the content of the clipboard.
 func ReadClipboard() (string, error) {

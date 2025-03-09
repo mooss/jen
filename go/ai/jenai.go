@@ -7,6 +7,7 @@ import (
 
 	"github.com/mooss/bagend/go/flag"
 	"github.com/mooss/jen/go/ai/config"
+	"github.com/mooss/jen/go/ai/models"
 	"github.com/mooss/jen/go/ai/prompts"
 )
 
@@ -60,10 +61,28 @@ func exec(cfg *config.Jenai) {
 		os.Exit(0)
 	}
 
-	pretty, err := json.MarshalIndent(cfg, "", "  ")
+	spec, err := modelSpec(cfg)
+	if err != nil {
+		fatal(err)
+	}
+	fmt.Println("Model:", pretty(spec))
+	fmt.Println("Config:", pretty(cfg))
+}
+
+func modelSpec(cfg *config.Jenai) (models.Spec, error) {
+	spec, exists := models.ModelSpecs[cfg.Model]
+	if !exists {
+		return spec, fmt.Errorf("unknown model: %s", cfg.Model)
+	}
+
+	return spec, nil
+}
+
+func pretty(data any) string {
+	pretty, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		fatal(err)
 	}
 
-	fmt.Printf("Config: %s\n", string(pretty))
+	return string(pretty)
 }
