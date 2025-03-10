@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"gopkg.in/yaml.v3"
+	"github.com/mooss/jen/go/utils"
 )
 
 //go:embed prompts.yaml
@@ -22,12 +22,8 @@ type Library struct {
 var Embedded = onceErr(func() (Library, error) { return FromYAML(embeddedBytes) })
 
 func FromYAML(data []byte) (Library, error) {
-	var res Library
-	if err := yaml.Unmarshal(data, &res); err != nil {
-		return Library{}, fmt.Errorf("failed to load prompt library from YAML bytes: %w", err)
-	}
-
-	return res, nil
+	res, err := utils.FromYAML[Library](data)
+	return utils.Wrap(res, err, "failed to load prompt library from YAML bytes")
 }
 
 // RawPrompt returns the content of requested prompt, if it exists.
