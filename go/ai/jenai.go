@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -73,13 +74,26 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 	}
 
 	spec := noerr(modelSpec(cfg))
+	session := noerr(cfg.Session())
+	aichat := func(stdin io.Reader) {
+		cmd := exec.Command("aichat",
+			"--model", spec.Aichat(), "--session", session.Name, "--save-session")
+		cmd.Env = append(cmd.Env, "AICHAT_COMPRESS_THRESHOLD=10000",
+			"AICHAT_SESSIONS_DIR="+session.Dir)
+		cmd.Stdin = stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		noerr0(cmd.Run())
+	}
 
-	// Send the prompt through aichat.
-	cmd := exec.Command("aichat", "--model", spec.Aichat())
-	cmd.Stdin = strings.NewReader(prompt)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	noerr0(cmd.Run())
+	if prompt != "" {
+		aichat(strings.NewReader(prompt))
+	}
+
+	// If interactive mode or session specified without prompt, start interactive session.
+	if cfg.Interactive || (session.Requested && prompt == "") {
+		aichat(os.Stdin)
+	}
 }
 
 func modelSpec(cfg *config.Jenai) (models.Spec, error) {

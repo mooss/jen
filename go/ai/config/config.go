@@ -22,7 +22,7 @@ type Jenai struct {
 	Paste       bool
 	Positional  []string
 	PromptName  string
-	Session     string
+	session     Session
 	TeeFile     string
 
 	// Implementation details.
@@ -49,7 +49,7 @@ func (conf *Jenai) RegisterCLI() *flag.Parser {
 	parser.Bool("oneshot", &conf.OneShot, "Use positional arguments as the prompt").
 		Alias("o")
 	parser.Bool("paste", &conf.Paste, "Use clipboard content as prompt")
-	parser.String("session", &conf.Session,
+	parser.String("session", &conf.session.Name,
 		"Reuse or create specific session name (/last for most recent session)")
 	parser.String("tee", &conf.TeeFile, "Output to both stdout and FILE")
 
@@ -82,15 +82,15 @@ func (conf *Jenai) Validate() error {
 	}
 
 	// Validate that positional arguments are provided when needed.
-	if !conf.Paste && len(conf.rawPositional) == 0 && conf.Session == "" {
+	if !conf.Paste && len(conf.rawPositional) == 0 && conf.session.Name == "" {
 		return errors.New("No positional arguments provided")
 	}
 
 	return nil
 }
 
-//////////////////////////////
-// Other high-level methods //
+////////////
+// Prompt //
 
 // BuildPrompt returns the complete prompt, taking all sources into account (prompt, clipboard and
 // positional argument).
@@ -106,7 +106,7 @@ func (conf *Jenai) BuildPrompt(lib prompts.Library) (string, error) {
 	case conf.OneShot:
 		get = func() (string, error) { return "", nil }
 	case conf.Paste:
-		get = ReadClipboard
+		get = readClipboard
 	}
 
 	// Add primary source.
@@ -150,6 +150,20 @@ func (conf *Jenai) addContext(buf []string) ([]string, error) {
 	return buf, nil
 }
 
+/////////////
+// Session //
+
+// Session returns a session object to manipulate a chat session.
+func (conf *Jenai) Session() (Session, error) {
+	if conf.session.Dir == "" {
+		if err := conf.session.prepare(); err != nil {
+			return Session{}, err
+		}
+	}
+
+	return conf.session, nil
+}
+
 /////////////////////
 // Utility methods //
 
@@ -162,8 +176,8 @@ func (conf *Jenai) PromptMode() bool {
 ///////////////////////
 // Utility functions //
 
-// ReadClipboard returns the content of the clipboard.
-func ReadClipboard() (string, error) {
+// readClipboard returns the content of the clipboard.
+func readClipboard() (string, error) {
 	cmd := exec.Command("xclip", "-o", "-selection", "clipboard")
 	output, err := cmd.Output()
 	if err != nil {
