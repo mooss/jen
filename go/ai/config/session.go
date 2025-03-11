@@ -95,7 +95,7 @@ func sessionDir() string {
 		root = strings.TrimSpace(string(gitRoot))
 	}
 
-	return filepath.Join(root, ".jenai", "session")
+	return filepath.Join(root, ".jenai", "aichat", "session")
 }
 
 // uniqueFilePrefix generates a unique file prefix based on a given directory, prefix, and suffix.
