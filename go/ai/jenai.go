@@ -88,12 +88,32 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 
 	if prompt != "" {
 		aichat(strings.NewReader(prompt))
+		if cfg.TeeFile != "" {
+			if err := tee(cfg.TeeFile, session); err != nil {
+				fmt.Fprintf(os.Stderr,
+					"can't tee to %s (will proceed nonetheless): %s", cfg.TeeFile, err)
+			}
+		}
 	}
 
 	// If interactive mode or session specified without prompt, start interactive session.
 	if cfg.Interactive || (session.Requested && prompt == "") {
 		aichat(os.Stdin)
 	}
+}
+
+func tee(teefile string, session config.SessionMetadata) error {
+	conv, err := session.Load()
+	if err != nil {
+		return err
+	}
+
+	if len(conv.Messages) == 0 {
+		return fmt.Errorf("no message in session")
+	}
+
+	last := conv.Messages[len(conv.Messages)-1]
+	return os.WriteFile(teefile, []byte(last.Content), 0644)
 }
 
 func modelSpec(cfg *config.Jenai) (models.Spec, error) {

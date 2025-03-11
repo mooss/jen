@@ -10,9 +10,14 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/mooss/jen/go/utils"
 )
 
-type Session struct {
+//////////////////////
+// Session metadata //
+
+type SessionMetadata struct {
 	// Dir is the path to the aichat session dir.
 	Dir string
 	// Name is the name of the session.
@@ -23,7 +28,7 @@ type Session struct {
 
 // prepare sets the proper the session name and dir and ensures the session is valid and ready to
 // use.
-func (ses *Session) prepare() error {
+func (ses *SessionMetadata) prepare() error {
 	ses.Dir = sessionDir()
 	ses.Requested = true
 
@@ -47,9 +52,38 @@ func (ses *Session) prepare() error {
 }
 
 // Path returns the path to the aichat session.
-func (ses *Session) Path() string {
+func (ses *SessionMetadata) Path() string {
 	return filepath.Join(ses.Dir, ses.Name+".yaml")
 }
+
+//////////////////
+// Session data //
+
+// Conversation represents the entire session.
+type Conversation struct {
+	Model    string    `yaml:"model"`
+	Messages []Message `yaml:"messages"`
+}
+
+// Message represents a single message in the session.
+type Message struct {
+	Role    string `yaml:"role"`
+	Content string `yaml:"content"`
+}
+
+// Load loads a conversation from a YAML file.
+func (ses *SessionMetadata) Load() (Conversation, error) {
+	data, err := os.ReadFile(ses.Path())
+	if err != nil {
+		return Conversation{}, err
+	}
+
+	res, err := utils.FromYAML[Conversation](data)
+	return utils.Wrapf(res, err, "failed to load session %s from YAML", ses.Path())
+}
+
+///////////////////////
+// Utility functions //
 
 // sessionDir return the path to the session directory.
 func sessionDir() string {

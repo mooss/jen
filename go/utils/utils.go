@@ -18,11 +18,11 @@ func FromYAML[T any](data []byte) (T, error) {
 	return res, nil
 }
 
-// Wrap returns a function that will wrap an error using prefix.
+// Wrapf wraps a non-nil err and prefixes it with a formatted string.
 // It is meant to be a shortcut for wrapping a 2-value error result.
-func Wrap[T any](res T, err error, prefix string) (T, error) {
+func Wrapf[T any](res T, err error, format string, args ...any) (T, error) {
 	if err != nil {
-		return res, fmt.Errorf("%s: %w", prefix, err)
+		return res, fmt.Errorf(format+": %w", append(args, err)...)
 	}
 
 	return res, nil

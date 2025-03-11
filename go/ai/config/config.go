@@ -22,7 +22,7 @@ type Jenai struct {
 	Paste       bool
 	Positional  []string
 	PromptName  string
-	session     Session
+	session     SessionMetadata
 	TeeFile     string
 
 	// Implementation details.
@@ -51,7 +51,7 @@ func (conf *Jenai) RegisterCLI() *flag.Parser {
 	parser.Bool("paste", &conf.Paste, "Use clipboard content as prompt")
 	parser.String("session", &conf.session.Name,
 		"Reuse or create specific session name (/last for most recent session)")
-	parser.String("tee", &conf.TeeFile, "Output to both stdout and FILE")
+	parser.String("tee", &conf.TeeFile, "Output first answer to both stdout and FILE")
 
 	return parser
 }
@@ -154,10 +154,10 @@ func (conf *Jenai) addContext(buf []string) ([]string, error) {
 // Session //
 
 // Session returns a session object to manipulate a chat session.
-func (conf *Jenai) Session() (Session, error) {
+func (conf *Jenai) Session() (SessionMetadata, error) {
 	if conf.session.Dir == "" {
 		if err := conf.session.prepare(); err != nil {
-			return Session{}, err
+			return SessionMetadata{}, err
 		}
 	}
 

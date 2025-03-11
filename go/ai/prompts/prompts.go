@@ -23,7 +23,7 @@ var Embedded = onceErr(func() (Library, error) { return FromYAML(embeddedBytes) 
 
 func FromYAML(data []byte) (Library, error) {
 	res, err := utils.FromYAML[Library](data)
-	return utils.Wrap(res, err, "failed to load prompt library from YAML bytes")
+	return utils.Wrapf(res, err, "failed to load prompt library from YAML")
 }
 
 // RawPrompt returns the content of requested prompt, if it exists.
