@@ -73,13 +73,8 @@ type Message struct {
 
 // Load loads a conversation from a YAML file.
 func (ses *SessionMetadata) Load() (Conversation, error) {
-	data, err := os.ReadFile(ses.Path())
-	if err != nil {
-		return Conversation{}, err
-	}
-
-	res, err := utils.FromYAML[Conversation](data)
-	return utils.Wrapf(res, err, "failed to load session %s from YAML", ses.Path())
+	res, err := utils.FromYAMLFile[Conversation](ses.Path())
+	return utils.Wrapf(res, err, "failed to load session %s", ses.Path())
 }
 
 ///////////////////////
