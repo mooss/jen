@@ -1,8 +1,17 @@
 // Side of the square used as the foundation of the token.
 SQUARE_SIZE = 20;
 
-// Height of the token.
-EXTRUSION_HEIGHT = 2;
+// Height of the bottom part of the token.
+BASE_HEIGHT = .4;
+
+// Height of the part of the frame that is above the plateau.
+FRAME_HEIGHT = .4;
+
+// Total height of the token.
+TOTAL_HEIGHT = 2;
+
+// Height of the part of the plateau that is above the base.
+PLATEAU_HEIGHT = TOTAL_HEIGHT - FRAME_HEIGHT - BASE_HEIGHT;
 
 // Radius of the rounded corners.
 CORNER_RADIUS = 3;
@@ -71,7 +80,17 @@ module circled_frame(xy, frame_radius, frame_ratio, circle_radius) {
 	inner_circles(xy, circle_radius, frame_ratio);
 }
 
-linear_extrude(height=EXTRUSION_HEIGHT) {
+// Bottom part and plateau of the token.
+module base(xy, corner_radius, frame_ratio, base_height, plateau_height) {
+	linear_extrude(height=base_height)
+		rounded_square(xy, corner_radius);
+	linear_extrude(height=base_height+plateau_height)
+		rounded_square(xy - 2*frame_ratio, corner_radius);
+}
+
+base(SQUARE_SIZE, CORNER_RADIUS, FRAME_RATIO, BASE_HEIGHT, PLATEAU_HEIGHT);
+
+linear_extrude(height=TOTAL_HEIGHT) {
 	// rounded_square(SQUARE_SIZE, CORNER_RADIUS);
 	// frame(SQUARE_SIZE, CORNER_RADIUS, FRAME_RATIO);
 	// corner_circles(SQUARE_SIZE, INNER_CIRCLE_RADIUS);
