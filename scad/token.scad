@@ -34,75 +34,75 @@ module rounded_square(xy, corner_radius) {
 }
 
 // Subtract a smaller version of the rounded square from itself to create a rounded frame.
-module frame(xy, corner_radius, frame_ratio) {
+module frame() {
 	difference() {
-		rounded_square(xy, corner_radius);
+		rounded_square(SQUARE_SIZE, CORNER_RADIUS);
 
 		// The cut ratio for the radius is prettier when put to the power of 3.
 		// Why? IDK.
-		rounded_square(xy * frame_ratio, corner_radius * frame_ratio ^3);
+		rounded_square(SQUARE_SIZE * FRAME_RATIO, CORNER_RADIUS * FRAME_RATIO ^3);
 	}
 }
 
 // Place circles at the four corners of the square.
-module corner_circles(xy, radius) {
-	// Half XY.
-	hxy = xy/2;
+module corner_circles() {
+	// Half square size.
+	hsq = SQUARE_SIZE/2;
 
 	// Top-left.
-	translate([-hxy, hxy, 0])
-		circle(r = radius, $fn = CIRCLE_RESOLUTION);
+	translate([-hsq, hsq, 0])
+		circle(r = INNER_CIRCLE_RADIUS, $fn = CIRCLE_RESOLUTION);
 
 	// Top-right.
-	translate([hxy, hxy, 0])
-		circle(r = radius, $fn = CIRCLE_RESOLUTION);
+	translate([hsq, hsq, 0])
+		circle(r = INNER_CIRCLE_RADIUS, $fn = CIRCLE_RESOLUTION);
 
 	// Bottom-left.
-	translate([-hxy, -hxy, 0])
-		circle(r = radius, $fn = CIRCLE_RESOLUTION);
+	translate([-hsq, -hsq, 0])
+		circle(r = INNER_CIRCLE_RADIUS, $fn = CIRCLE_RESOLUTION);
 
 	// Bottom-right.
-	translate([hxy, -hxy, 0])
-		circle(r = radius, $fn = CIRCLE_RESOLUTION); 
+	translate([hsq, -hsq, 0])
+		circle(r = INNER_CIRCLE_RADIUS, $fn = CIRCLE_RESOLUTION);
 }
 
 // Keep the part of the circles that are inside the rounded square.
-module inner_circles(xy, corner_radius, circle_radius) {
+module inner_circles() {
 	intersection() {
-		rounded_square(xy, corner_radius);
-		corner_circles(xy, circle_radius);
+		rounded_square(SQUARE_SIZE, CORNER_RADIUS);
+		corner_circles();
 	}
 }
 
 // Assemble the frame and the inner circles.
-module circled_frame(xy, corner_radius, circle_radius, frame_ratio) {
-	frame(xy, corner_radius, frame_ratio);
-	inner_circles(xy, corner_radius, circle_radius);
+module circled_frame() {
+	frame();
+	inner_circles();
 }
 
 // Bottom part and plateau of the token.
-module base(xy, corner_radius, frame_ratio, base_height, plateau_height) {
+module base(xy, base_height) {
 	linear_extrude(height=base_height)
-		rounded_square(xy, corner_radius);
-	linear_extrude(height=base_height+plateau_height)
-		rounded_square(xy - 2*frame_ratio, corner_radius);
+		rounded_square(xy, CORNER_RADIUS);
+	linear_extrude(height=base_height+PLATEAU_HEIGHT)
+		rounded_square(xy - 2*FRAME_RATIO, CORNER_RADIUS);
 }
 
-module assembled_frame(xy, corner_radius, circle_radius, frame_ratio, base_height, plateau_height, frame_height) {
+module assembled_frame() {
 	difference() {
-		linear_extrude(height=base_height+plateau_height+frame_height)
-			circled_frame(xy, corner_radius, circle_radius, frame_ratio);
+		linear_extrude(height=TOTAL_HEIGHT)
+			circled_frame();
 		translate([0, 0, -.5])
-			base(xy+.05, corner_radius, frame_ratio, base_height+.5, plateau_height);
+			base(SQUARE_SIZE+.05, BASE_HEIGHT+.5);
 	}
 }
 
 // rounded_square(SQUARE_SIZE, CORNER_RADIUS);
-// frame(SQUARE_SIZE, CORNER_RADIUS, FRAME_RATIO);
-// corner_circles(SQUARE_SIZE, INNER_CIRCLE_RADIUS);
-// inner_circles(SQUARE_SIZE, CORNER_RADIUS, INNER_CIRCLE_RADIUS);
-// circled_frame(SQUARE_SIZE, CORNER_RADIUS, INNER_CIRCLE_RADIUS, FRAME_RATIO);
+// frame();
+// corner_circles();
+// inner_circles();
+// circled_frame();
 
-base(SQUARE_SIZE, CORNER_RADIUS, FRAME_RATIO, BASE_HEIGHT, PLATEAU_HEIGHT);
+base(SQUARE_SIZE, BASE_HEIGHT);
 translate([1.2*SQUARE_SIZE, 0, 0])
-assembled_frame(SQUARE_SIZE, CORNER_RADIUS, INNER_CIRCLE_RADIUS, FRAME_RATIO, BASE_HEIGHT, PLATEAU_HEIGHT, FRAME_HEIGHT);
+assembled_frame();
