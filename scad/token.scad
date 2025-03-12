@@ -1,11 +1,17 @@
-// Side of the square used as the foundation of the token.
-SQUARE_SIZE = 20;
+////////////////
+// Parameters //
+
+// Size of the square used as the foundation of the token.
+SQUARE_SIZE = 25;
+
+// Size of the plateau, the central part of the base that is higher than the border.
+PLATEAU_SIZE = 22;
 
 // Height of the bottom part of the token.
-BASE_HEIGHT = .8;
+BASE_HEIGHT = 0;
 
 // Height of the part of the frame that is above the plateau.
-FRAME_HEIGHT = .4;
+FRAME_HEIGHT = .6;
 
 // Total height of the token.
 TOTAL_HEIGHT = 2;
@@ -20,10 +26,13 @@ CORNER_RADIUS = 3;
 CIRCLE_RESOLUTION = 128;
 
 // Width of the frame relative to the square.
-FRAME_RATIO=.9;
+FRAME_RATIO = .8;
 
 // Radius of the inner circles.
-INNER_CIRCLE_RADIUS=4;
+INNER_CIRCLE_RADIUS = 6;
+
+///////////////////////
+// Shape definitions //
 
 // Make a square with rounded circles.
 module rounded_square(xy, corner_radius) {
@@ -82,10 +91,11 @@ module circled_frame() {
 
 // Bottom part and plateau of the token.
 module base(xy, base_height) {
-	linear_extrude(height=base_height)
-		rounded_square(xy, CORNER_RADIUS);
 	linear_extrude(height=base_height+PLATEAU_HEIGHT)
-		rounded_square(xy - 2*FRAME_RATIO, CORNER_RADIUS);
+		difference(){
+		rounded_square(PLATEAU_SIZE, CORNER_RADIUS);
+		inner_circles();
+	}
 }
 
 module assembled_frame() {
@@ -97,6 +107,10 @@ module assembled_frame() {
 	}
 }
 
+
+////////////////////
+// Shape assembly //
+
 // rounded_square(SQUARE_SIZE, CORNER_RADIUS);
 // frame();
 // corner_circles();
@@ -106,3 +120,4 @@ module assembled_frame() {
 base(SQUARE_SIZE, BASE_HEIGHT);
 translate([1.2*SQUARE_SIZE, 0, 0])
 assembled_frame();
+
