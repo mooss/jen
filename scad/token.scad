@@ -17,21 +17,21 @@ FRAME_RATIO=.9;
 INNER_CIRCLE_RADIUS=4;
 
 // Make a square with rounded circles.
-module rounded_square(xy, radius) {
+module rounded_square(xy, corner_radius) {
 	minkowski() {
-		square([xy - 2 * radius, xy - 2 * radius], center = true);
-		circle(r = radius, $fn = CIRCLE_RESOLUTION);
+		square([xy - 2 * corner_radius, xy - 2 * corner_radius], center = true);
+		circle(r = corner_radius, $fn = CIRCLE_RESOLUTION);
 	}
 }
 
 // Subtract a smaller version of the rounded square from itself to create a rounded frame.
-module frame(xy, radius, cut_ratio) {
+module frame(xy, corner_radius, frame_ratio) {
 	difference() {
-		rounded_square(xy, radius);
+		rounded_square(xy, corner_radius);
 
 		// The cut ratio for the radius is prettier when put to the power of 3.
 		// Why? IDK.
-		rounded_square(xy * cut_ratio, radius * cut_ratio ^3);
+		rounded_square(xy * frame_ratio, corner_radius * frame_ratio ^3);
 	}
 }
 
@@ -58,17 +58,17 @@ module corner_circles(xy, radius) {
 }
 
 // Keep the part of the circles that are inside the rounded square.
-module inner_circles(xy, radius, cut_ratio) {
+module inner_circles(xy, circle_radius, frame_ratio) {
 	intersection() {
-		rounded_square(xy, cut_ratio);
-		corner_circles(xy, radius);
+		rounded_square(xy, frame_ratio);
+		corner_circles(xy, circle_radius);
 	}
 }
 
 // Assemble the frame and the inner circles.
-module circled_frame(xy, frame_radius, cut_ratio, circle_radius) {
-	frame(xy, frame_radius, cut_ratio);
-	inner_circles(xy, circle_radius, cut_ratio);
+module circled_frame(xy, frame_radius, frame_ratio, circle_radius) {
+	frame(xy, frame_radius, frame_ratio);
+	inner_circles(xy, circle_radius, frame_ratio);
 }
 
 linear_extrude(height=EXTRUSION_HEIGHT) {
@@ -76,5 +76,5 @@ linear_extrude(height=EXTRUSION_HEIGHT) {
 	// frame(SQUARE_SIZE, CORNER_RADIUS, FRAME_RATIO);
 	// corner_circles(SQUARE_SIZE, INNER_CIRCLE_RADIUS);
 	// inner_circles(SQUARE_SIZE, INNER_CIRCLE_RADIUS, FRAME_RATIO);
-	circled_frame(SQUARE_SIZE, CORNER_RADIUS, .9, INNER_CIRCLE_RADIUS);
+	circled_frame(SQUARE_SIZE, CORNER_RADIUS, FRAME_RATIO, INNER_CIRCLE_RADIUS);
 }
