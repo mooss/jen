@@ -1,1 +1,4 @@
-#+title: Text generation utilities
+#+title: Text-based generation utilities
+
+This repo is mostly centered on text generation, but as long as something is being generated, it can
+fit in here.
