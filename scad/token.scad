@@ -2,7 +2,7 @@
 SQUARE_SIZE = 20;
 
 // Height of the bottom part of the token.
-BASE_HEIGHT = .4;
+BASE_HEIGHT = .8;
 
 // Height of the part of the frame that is above the plateau.
 FRAME_HEIGHT = .4;
@@ -67,17 +67,17 @@ module corner_circles(xy, radius) {
 }
 
 // Keep the part of the circles that are inside the rounded square.
-module inner_circles(xy, circle_radius, frame_ratio) {
+module inner_circles(xy, corner_radius, circle_radius) {
 	intersection() {
-		rounded_square(xy, frame_ratio);
+		rounded_square(xy, corner_radius);
 		corner_circles(xy, circle_radius);
 	}
 }
 
 // Assemble the frame and the inner circles.
-module circled_frame(xy, frame_radius, frame_ratio, circle_radius) {
-	frame(xy, frame_radius, frame_ratio);
-	inner_circles(xy, circle_radius, frame_ratio);
+module circled_frame(xy, corner_radius, circle_radius, frame_ratio) {
+	frame(xy, corner_radius, frame_ratio);
+	inner_circles(xy, corner_radius, circle_radius);
 }
 
 // Bottom part and plateau of the token.
@@ -88,12 +88,21 @@ module base(xy, corner_radius, frame_ratio, base_height, plateau_height) {
 		rounded_square(xy - 2*frame_ratio, corner_radius);
 }
 
-base(SQUARE_SIZE, CORNER_RADIUS, FRAME_RATIO, BASE_HEIGHT, PLATEAU_HEIGHT);
-
-linear_extrude(height=TOTAL_HEIGHT) {
-	// rounded_square(SQUARE_SIZE, CORNER_RADIUS);
-	// frame(SQUARE_SIZE, CORNER_RADIUS, FRAME_RATIO);
-	// corner_circles(SQUARE_SIZE, INNER_CIRCLE_RADIUS);
-	// inner_circles(SQUARE_SIZE, INNER_CIRCLE_RADIUS, FRAME_RATIO);
-	circled_frame(SQUARE_SIZE, CORNER_RADIUS, FRAME_RATIO, INNER_CIRCLE_RADIUS);
+module assembled_frame(xy, corner_radius, circle_radius, frame_ratio, base_height, plateau_height, frame_height) {
+	difference() {
+		linear_extrude(height=base_height+plateau_height+frame_height)
+			circled_frame(xy, corner_radius, circle_radius, frame_ratio);
+		translate([0, 0, -.5])
+			base(xy+.05, corner_radius, frame_ratio, base_height+.5, plateau_height);
+	}
 }
+
+// rounded_square(SQUARE_SIZE, CORNER_RADIUS);
+// frame(SQUARE_SIZE, CORNER_RADIUS, FRAME_RATIO);
+// corner_circles(SQUARE_SIZE, INNER_CIRCLE_RADIUS);
+// inner_circles(SQUARE_SIZE, CORNER_RADIUS, INNER_CIRCLE_RADIUS);
+// circled_frame(SQUARE_SIZE, CORNER_RADIUS, INNER_CIRCLE_RADIUS, FRAME_RATIO);
+
+base(SQUARE_SIZE, CORNER_RADIUS, FRAME_RATIO, BASE_HEIGHT, PLATEAU_HEIGHT);
+translate([1.2*SQUARE_SIZE, 0, 0])
+assembled_frame(SQUARE_SIZE, CORNER_RADIUS, INNER_CIRCLE_RADIUS, FRAME_RATIO, BASE_HEIGHT, PLATEAU_HEIGHT, FRAME_HEIGHT);
