@@ -20,7 +20,7 @@ TOTAL_HEIGHT = 2.5;
 PLATEAU_HEIGHT = TOTAL_HEIGHT - FRAME_HEIGHT - BASE_HEIGHT;
 
 // Height of the paper gap, the place below the frame ledge where paper can be inserted.
-GAP_HEIGHT = .2;
+GAP_HEIGHT = .4;
 
 // Radius of the rounded corners.
 CORNER_RADIUS = 3;
@@ -32,7 +32,13 @@ CIRCLE_RESOLUTION = 128;
 FRAME_RATIO = .8;
 
 // Radius of the inner circles.
-INNER_CIRCLE_RADIUS = 6;
+INNER_CIRCLE_RADIUS = 7;
+
+// Scale factor for the base to be able to clip the parts together.
+FIT_RATIO = .995;
+
+// Size of the squares on the corner that are used to cut the corners of the base.
+CHAMFER_SQUARE_SIZE = 11;
 
 ///////////////////////
 // Shape definitions //
@@ -40,7 +46,7 @@ INNER_CIRCLE_RADIUS = 6;
 // Make a square with rounded circles.
 module rounded_square(xy, corner_radius) {
 	minkowski() {
-		square([xy - 2 * corner_radius, xy - 2 * corner_radius], center = true);
+		square(xy - 2 * corner_radius, center = true);
 		circle(r = corner_radius, $fn = CIRCLE_RESOLUTION);
 	}
 }
@@ -53,26 +59,37 @@ module frame() {
 	}
 }
 
-// Place circles at the four corners of the square.
+// Create a single circle for corners using global parameters.
+module corner_circle(x, y) {
+	translate([x, y, 0])
+		circle(r = INNER_CIRCLE_RADIUS, $fn = CIRCLE_RESOLUTION);
+}
+
+// Place circles at the four corners of the base.
 module corner_circles() {
-	// Half square size.
 	hsq = SQUARE_SIZE/2;
 
-	// Top-left.
-	translate([-hsq, hsq, 0])
-		circle(r = INNER_CIRCLE_RADIUS, $fn = CIRCLE_RESOLUTION);
+	corner_circle(-hsq,  hsq); // Top left.
+	corner_circle( hsq,  hsq); // Top right.
+	corner_circle(-hsq, -hsq); // Bottom left.
+	corner_circle( hsq, -hsq); // Bottom right.
+}
 
-	// Top-right.
-	translate([hsq, hsq, 0])
-		circle(r = INNER_CIRCLE_RADIUS, $fn = CIRCLE_RESOLUTION);
+// Create a single square for corners using global parameters.
+module corner_square(x, y) {
+	translate([x, y, 0])
+		rotate([0, 0, 45])
+		square(CHAMFER_SQUARE_SIZE, center=true);
+}
 
-	// Bottom-left.
-	translate([-hsq, -hsq, 0])
-		circle(r = INNER_CIRCLE_RADIUS, $fn = CIRCLE_RESOLUTION);
+// Place squares at the four corners of the base.
+module corner_squares() {
+	hsq = SQUARE_SIZE/2;
 
-	// Bottom-right.
-	translate([hsq, -hsq, 0])
-		circle(r = INNER_CIRCLE_RADIUS, $fn = CIRCLE_RESOLUTION);
+	corner_square(-hsq,  hsq); // Top left.
+	corner_square( hsq,  hsq); // Top right.
+	corner_square(-hsq, -hsq); // Bottom left.
+	corner_square( hsq, -hsq); // Bottom right.
 }
 
 // Keep the part of the circles that are inside the rounded square.
@@ -89,12 +106,25 @@ module circled_frame() {
 	inner_circles();
 }
 
+module inner_chamfers() {
+	intersection() {
+		rounded_square(SQUARE_SIZE, CORNER_RADIUS);
+		corner_squares();
+	}
+}
+
+// Assemble the frame and the inner chamfers.
+module chamfered_frame() {
+	frame();
+	inner_chamfers();
+}
+
 // Bottom part and plateau of the token.
 module base(xy, base_height) {
 	linear_extrude(height=base_height+PLATEAU_HEIGHT)
 		difference(){
 		rounded_square(PLATEAU_SIZE, CORNER_RADIUS);
-		inner_circles();
+		inner_chamfers();
 	}
 }
 
@@ -120,6 +150,8 @@ module assembled_frame() {
 // inner_circles();
 // circled_frame();
 
+scale([FIT_RATIO, FIT_RATIO, 1])
 base(SQUARE_SIZE, BASE_HEIGHT);
+
 translate([1.2*SQUARE_SIZE, 0, 0])
 assembled_frame();
