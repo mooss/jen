@@ -14,10 +14,13 @@ BASE_HEIGHT = 0;
 FRAME_HEIGHT = .6;
 
 // Total height of the token.
-TOTAL_HEIGHT = 2;
+TOTAL_HEIGHT = 2.5;
 
 // Height of the part of the plateau that is above the base.
 PLATEAU_HEIGHT = TOTAL_HEIGHT - FRAME_HEIGHT - BASE_HEIGHT;
+
+// Height of the paper gap, the place below the frame ledge where paper can be inserted.
+GAP_HEIGHT = .2;
 
 // Radius of the rounded corners.
 CORNER_RADIUS = 3;
@@ -46,10 +49,7 @@ module rounded_square(xy, corner_radius) {
 module frame() {
 	difference() {
 		rounded_square(SQUARE_SIZE, CORNER_RADIUS);
-
-		// The cut ratio for the radius is prettier when put to the power of 3.
-		// Why? IDK.
-		rounded_square(SQUARE_SIZE * FRAME_RATIO, CORNER_RADIUS * FRAME_RATIO ^3);
+		rounded_square(SQUARE_SIZE * FRAME_RATIO, CORNER_RADIUS * FRAME_RATIO);
 	}
 }
 
@@ -104,6 +104,9 @@ module assembled_frame() {
 			circled_frame();
 		translate([0, 0, -.5])
 			base(SQUARE_SIZE+.05, BASE_HEIGHT+.5);
+		translate([0, 0, PLATEAU_HEIGHT-GAP_HEIGHT])
+			linear_extrude(height=GAP_HEIGHT)
+			rounded_square(PLATEAU_SIZE, CORNER_RADIUS);
 	}
 }
 
@@ -120,4 +123,3 @@ module assembled_frame() {
 base(SQUARE_SIZE, BASE_HEIGHT);
 translate([1.2*SQUARE_SIZE, 0, 0])
 assembled_frame();
-
