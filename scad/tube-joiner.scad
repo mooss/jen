@@ -1,19 +1,35 @@
+// Size of the cube forming the core of the tube joiner.
+SIZE = 10;
+
+// How deep the tube goes inside a given face.
+TUBE_DEPTH = 2;
+
+// Witdh of the tube.
+TUBE_WIDTH = 2;
+
+// How much should the base cube be truncated.
+TRUNCATION_RATIO = .6;
+
+AXES = [[1, 0, 0],  // x
+		[0, 1, 0],  // y
+		[0, 0, 1]]; // z
+
 module octahedron(size) {
 	points=[[ 1,  0,  0],  // Right.
 			[ 0,  1,  0],  // Forward.
+			[ 0,  0,  1],  // Up.
 			[-1,  0,  0],  // Left.
 			[ 0, -1,  0],  // Backward.
-			[ 0,  0,  1],  // Up.
 			[ 0,  0, -1]]; // Down.
 
-	faces=[[4, 1, 0], // Top faces.
-		   [4, 2, 1],
-		   [4, 3, 2],
-		   [4, 0, 3],
+	faces=[[2, 1, 0], // Top faces.
+		   [2, 3, 1],
+		   [2, 4, 3],
+		   [2, 0, 4],
 		   [5, 0, 1], // Bottom faces.
-		   [5, 1, 2],
-		   [5, 2, 3],
-		   [5, 3, 0]];
+		   [5, 1, 3],
+		   [5, 3, 4],
+		   [5, 4, 0]];
 
 	polyhedron(points = points * size, faces = faces);
 }
@@ -28,4 +44,29 @@ module truncube(cube_size, ratio) {
 	}
 }
 
-truncube(10, .75);
+// One tube resting inside the top part of the cube.
+module tube() {
+	translate([0, 0, SIZE/2 - TUBE_DEPTH])
+		cylinder(TUBE_DEPTH+.001, r=TUBE_WIDTH, $fn=128);
+}
+
+// All 6 rotations of the tube to cover the positive and negative position of each axis.
+module tubes() {
+	for(axis = [0:2]) {
+		rotate(AXES[axis]*90)
+			tube();
+		rotate(AXES[axis]*90)
+			mirror([0, 0, 1])
+			tube();
+	}
+}
+
+// A truncated cube with a hole on each face where a tube can be inserted.
+module joiner() {
+	difference() {
+		truncube(SIZE, TRUNCATION_RATIO);
+		tubes();
+	}
+}
+
+joiner();
