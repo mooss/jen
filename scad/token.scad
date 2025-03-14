@@ -1,11 +1,8 @@
 ////////////////
 // Parameters //
 
-// Size of the square used as the foundation of the token.
-TOKEN_SIZE = 25;
-
-// Size of the core.
-CORE_SIZE = 22;
+// Size of the rectangle used as the foundation of the token.
+TOKEN = [16, 32];
 
 // Total height of the token.
 TOKEN_HEIGHT = 2.5;
@@ -39,15 +36,12 @@ module rounded_rect(x, y, corner_radius, center=true) {
 	}
 }
 
-// A square with rounded corners.
-module rounded_square(xy, corner_radius, center=true) {
-	rounded_rect(xy, xy, corner_radius, center=center);
-}
-
 // The maximal X/Y footprint of the token.
 module flat_token(center=true) {
-	rounded_square(TOKEN_SIZE, CORNER_RADIUS, center=center);
+	rounded_rect(TOKEN.x, TOKEN.y, CORNER_RADIUS, center=center);
 }
+
+function addv2s(v, s) = [v[0]+s, v[1]+s];
 
 ////////////////
 // Token core //
@@ -56,11 +50,17 @@ module flat_token(center=true) {
 // Scale factor for the core, allowing the parts to fit together.
 CORE_FIT_RATIO = .997;
 
+// Ratio of the core relative to the full token size.
+CORE_RATIO = .9;
+
+// Size of the core.
+CORE = [TOKEN.x * CORE_RATIO, TOKEN.y * CORE_RATIO];
+
 // Bottom part of the token.
 // This part is rounded to minimize adhesion problems when printing it.
-module core(xy) {
+module core() {
 	linear_extrude(height=CORE_HEIGHT)
-		rounded_square(CORE_SIZE, CORNER_RADIUS);
+		rounded_rect(CORE.x, CORE.y, CORNER_RADIUS);
 }
 
 /////////////////
@@ -68,6 +68,7 @@ module core(xy) {
 // The top and side part of the token, with a central void that exposes the paper underneath.
 
 // Width of the frame's central void.
+// Must be smaller than CORE_RATIO.
 FRAME_RATIO = .8;
 
 // Subtract a smaller version of the rounded square from itself to create the fundamental block of a
@@ -75,13 +76,13 @@ FRAME_RATIO = .8;
 module frame_block() {
 	difference() {
 		flat_token();
-		rounded_square(TOKEN_SIZE * FRAME_RATIO, CORNER_RADIUS * FRAME_RATIO);
+		rounded_rect(TOKEN.x * FRAME_RATIO, TOKEN.y * FRAME_RATIO, CORNER_RADIUS * FRAME_RATIO);
 	}
 }
 
 // Radius of the inner circles (the circles that extend inwards from each corner at the top of the
 // frame).
-INNER_CIRCLE_RADIUS = 7;
+INNER_CIRCLE_RADIUS = 0; // TODO: think about removing this.
 
 // Create a single circle for corners.
 module corner_circle(x, y) {
@@ -91,12 +92,13 @@ module corner_circle(x, y) {
 
 // Place circles at the four corners of the frame.
 module corner_circles() {
-	hsq = TOKEN_SIZE/2;
+	x = TOKEN.x/2;
+	y = TOKEN.y/2;
 
-	corner_circle(-hsq,  hsq); // Top left.
-	corner_circle( hsq,  hsq); // Top right.
-	corner_circle(-hsq, -hsq); // Bottom left.
-	corner_circle( hsq, -hsq); // Bottom right.
+	corner_circle(-x,  y); // Top left.
+	corner_circle( x,  y); // Top right.
+	corner_circle(-x, -y); // Bottom left.
+	corner_circle( x, -y); // Bottom right.
 }
 
 // Keep the part of the circles that are inside the rounded square.
@@ -118,7 +120,7 @@ module assembled_frame() {
 		}
 		translate([0, 0, -.5])
 			linear_extrude(height=CORE_HEIGHT+.5)
-			square(CORE_SIZE, center=true);
+			rectangle(CORE.x, CORE.y);
 	}
 }
 
@@ -127,7 +129,7 @@ module assembled_frame() {
 // The 2d grid on which the tokens can be placed.
 
 // Number of cells.
-GRID_X = 2; GRID_Y = 2;
+GRID = [2, 2];
 
 // Distance between each cell.
 INTER_CELL = 2;
@@ -139,29 +141,28 @@ GRID_LOW_HEIGHT = 1;
 GRID_HEIGHT = GRID_LOW_HEIGHT + TOKEN_HEIGHT;
 
 // Space between neighboring cells.
-CELL_DISTANCE = (INTER_CELL + TOKEN_SIZE);
+CELL_DIST = addv2s(TOKEN, INTER_CELL);
 
 // Dimensions of the grid.
-GRID_DIM_X = CELL_DISTANCE * GRID_X + INTER_CELL;
-GRID_DIM_Y = CELL_DISTANCE * GRID_Y + INTER_CELL;
+GRID_DIM = addv2s([CELL_DIST.x * GRID.x, CELL_DIST.y * GRID.y], INTER_CELL);
 
 // Cell size increase to make the tokens fit into the cells.
 CELL_FIT_RATIO = 1.005;
 
 // Size of the empty space beneath each cell.
-VOID_SIZE = TOKEN_SIZE - 7;
+VOID = addv2s(TOKEN, -7);
 
 // Fundamental block of the grid from which cells can be substracted.
 module grid_block() {
 	linear_extrude(height=GRID_HEIGHT)
-		rounded_rect(GRID_DIM_X, GRID_DIM_Y, CORNER_RADIUS, center=false);
+		rounded_rect(GRID_DIM.x, GRID_DIM.y, CORNER_RADIUS, center=false);
 }
 
 // Repeats its children on all the cells.
 module foreach_cell() {
-	for(x = [0:GRID_X-1])
-		for(y = [0:GRID_Y-1]) {
-			translate([x*CELL_DISTANCE + INTER_CELL, y*CELL_DISTANCE + INTER_CELL])
+	for(x = [0:GRID.x-1])
+		for(y = [0:GRID.y-1]) {
+			translate([x*CELL_DIST.x + INTER_CELL, y*CELL_DIST.y + INTER_CELL])
 				children();
 		}
 }
@@ -175,11 +176,11 @@ module grid_cells() {
 
 // Void placed in the middle of each cell.
 module void_cells() {
-	center = (TOKEN_SIZE-VOID_SIZE) / 2;
+	center = (TOKEN-VOID) / 2;
 	foreach_cell()
-		translate([center, center, -.1])
+		translate([center[0], center[1], -.1])
 		linear_extrude(height=GRID_LOW_HEIGHT+.2)
-		rounded_square(VOID_SIZE, CORNER_RADIUS, center=false);
+		rounded_rect(VOID.x, VOID.y, CORNER_RADIUS, center=false);
 }
 
 // Grid block from which the cells have been subtracted.
@@ -199,10 +200,10 @@ module assembled_grid() {
 // Shape assembly //
 
 scale(CORE_FIT_RATIO)
-core(TOKEN_SIZE);
+core();
 
-translate([1.2*TOKEN_SIZE, 0, 0])
+translate([1.2*TOKEN.x, 0, 0])
 assembled_frame();
 
-translate([0, TOKEN_SIZE, 0])
+translate([0, TOKEN.y, 0])
 assembled_grid();
