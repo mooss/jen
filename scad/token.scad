@@ -22,19 +22,11 @@ CORNER_RADIUS = 3;
 // Number of segments for all the circles (rounded corners, inner circles).
 CIRCLE_RESOLUTION = 128;
 
-// Width of the frame relative to the square.
-FRAME_RATIO = .8;
+////////////////
+// Primitives //
+// Shapes that are not specific to this project, but generally useful to implement it.
 
-// Radius of the inner circles.
-INNER_CIRCLE_RADIUS = 7;
-
-// Scale factor for the base to be able to clip the parts together.
-FIT_RATIO = .997;
-
-///////////////////////
-// Shape definitions //
-
-// Make a square with rounded circles.
+// Makes a square with rounded circles.
 module rounded_square(xy, corner_radius) {
 	minkowski() {
 		square(xy - 2 * corner_radius, center = true);
@@ -42,13 +34,24 @@ module rounded_square(xy, corner_radius) {
 	}
 }
 
-// Subtract a smaller version of the rounded square from itself to create a rounded frame.
-module frame() {
+/////////////////
+// Token frame //
+// The top part of the token, with a central void that exposes the paper underneath.
+
+// Width of the frame's central void.
+FRAME_RATIO = .8;
+
+// Subtract a smaller version of the rounded square from itself to create the base block of a
+// rounded frame.
+module frame_block() {
 	difference() {
 		rounded_square(SQUARE_SIZE, CORNER_RADIUS);
 		rounded_square(SQUARE_SIZE * FRAME_RATIO, CORNER_RADIUS * FRAME_RATIO);
 	}
 }
+
+// Radius of the inner circles.
+INNER_CIRCLE_RADIUS = 7;
 
 // Create a single circle for corners using global parameters.
 module corner_circle(x, y) {
@@ -74,11 +77,27 @@ module inner_circles() {
 	}
 }
 
-// Assemble the frame and the inner circles.
-module circled_frame() {
-	frame();
-	inner_circles();
+// Frame with a middle rectangular part remove to fit the base inside it.
+// The removed part is rectangular and not the rounded base to make it as easy as possible to fit a
+// piece of paper.
+module assembled_frame() {
+	difference() {
+		linear_extrude(height=TOTAL_HEIGHT) {
+			frame_block();
+			inner_circles();
+		}
+		translate([0, 0, -.5])
+			linear_extrude(height=PLATEAU_HEIGHT+.5)
+			square(PLATEAU_SIZE, center=true);
+	}
 }
+
+////////////////
+// Token base //
+// The bottom part of the token, which presses the paper against the frame.
+
+// Scale factor for the base to be able to clip the parts together.
+FIT_RATIO = .997;
 
 // Bottom part of the token.
 // This part is rounded to minimize adhesion problems when printing it.
@@ -87,28 +106,13 @@ module base(xy) {
 		rounded_square(PLATEAU_SIZE, CORNER_RADIUS);
 }
 
-// Frame with a middle rectangular part remove to fit the base inside it.
-// The removed part is rectangular and not the rounded base to make it as easy as possible to fit a
-// piece of paper.
-module assembled_frame() {
-	difference() {
-		linear_extrude(height=TOTAL_HEIGHT)
-			circled_frame();
-		translate([0, 0, -.5])
-			linear_extrude(height=PLATEAU_HEIGHT+.5)
-			square(PLATEAU_SIZE, center=true);
-	}
-}
-
-
 ////////////////////
 // Shape assembly //
 
 // rounded_square(SQUARE_SIZE, CORNER_RADIUS);
-// frame();
+// frame_block();
 // corner_circles();
 // inner_circles();
-// circled_frame();
 
 scale(FIT_RATIO)
 base(SQUARE_SIZE);
