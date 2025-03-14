@@ -1,14 +1,20 @@
 // Size of the cube forming the core of the tube joiner.
-SIZE = 10;
+SIZE = 30;
 
 // How deep the tube goes inside a given face.
-TUBE_DEPTH = 2;
+TUBE_DEPTH = 8;
 
 // Witdh of the tube.
-TUBE_WIDTH = 2;
+TUBE_WIDTH = 9.75;
 
 // How much should the base cube be truncated.
-TRUNCATION_RATIO = .6;
+TRUNCATION_RATIO = .75;
+
+// Height of the support circle.
+SUPPORT_HEIGHT = .4;
+
+// Radius of the support circle.
+SUPPORT_RADIUS = 15;
 
 AXES = [[1, 0, 0],  // x
 		[0, 1, 0],  // y
@@ -47,7 +53,7 @@ module truncube(cube_size, ratio) {
 // One tube resting inside the top part of the cube.
 module tube() {
 	translate([0, 0, SIZE/2 - TUBE_DEPTH])
-		cylinder(TUBE_DEPTH+.001, r=TUBE_WIDTH, $fn=128);
+		cylinder(TUBE_DEPTH+.001, r=TUBE_WIDTH/2, $fn=128);
 }
 
 // All 6 rotations of the tube to cover the positive and negative position of each axis.
@@ -69,4 +75,16 @@ module joiner() {
 	}
 }
 
+// Additional surface below the model to help with bed adhesion.
+module support() {
+	difference() {
+		translate([0, 0, -SIZE/2])
+			linear_extrude(height=SUPPORT_HEIGHT)
+			circle(SUPPORT_RADIUS);
+		translate([0, 0, -0.001])
+			truncube(SIZE, TRUNCATION_RATIO);
+	}
+}
+
 joiner();
+support();
