@@ -127,13 +127,13 @@ module assembled_frame() {
 // The 2d grid on which the tokens can be placed.
 
 // Number of cells.
-GRID_X = 1; GRID_Y = 2;
+GRID_X = 2; GRID_Y = 2;
 
 // Distance between each cell.
 INTER_CELL = 2;
 
 // Height of the grid at the lowest point, where the token can be inserted.
-GRID_LOW_HEIGHT = 2;
+GRID_LOW_HEIGHT = 1;
 
 // Height of the grid at the highest point.
 GRID_HEIGHT = GRID_LOW_HEIGHT + TOKEN_HEIGHT;
@@ -148,21 +148,38 @@ GRID_DIM_Y = CELL_DISTANCE * GRID_Y + INTER_CELL;
 // Cell size increase to make the tokens fit into the cells.
 CELL_FIT_RATIO = 1.005;
 
+// Size of the empty space beneath each cell.
+VOID_SIZE = TOKEN_SIZE - 7;
+
 // Fundamental block of the grid from which cells can be substracted.
 module grid_block() {
 	linear_extrude(height=GRID_HEIGHT)
 		rounded_rect(GRID_DIM_X, GRID_DIM_Y, CORNER_RADIUS, center=false);
 }
 
-// Matrix of all the cells to carve from the grid block.
-module grid_cells() {
+// Repeats its children on all the cells.
+module foreach_cell() {
 	for(x = [0:GRID_X-1])
 		for(y = [0:GRID_Y-1]) {
-			// Place each cell at its X/Y coordinates and elevate it to the top of the grid.
 			translate([x*CELL_DISTANCE + INTER_CELL, y*CELL_DISTANCE + INTER_CELL])
-				linear_extrude(height=TOKEN_HEIGHT)
-				flat_token(center=false);
+				children();
 		}
+}
+
+// Matrix of all the cells to carve from the grid block.
+module grid_cells() {
+	foreach_cell()
+		linear_extrude(height=TOKEN_HEIGHT)
+		flat_token(center=false);
+}
+
+// Void placed in the middle of each cell.
+module void_cells() {
+	center = (TOKEN_SIZE-VOID_SIZE) / 2;
+	foreach_cell()
+		translate([center, center, -.1])
+		linear_extrude(height=GRID_LOW_HEIGHT+.2)
+		rounded_square(VOID_SIZE, CORNER_RADIUS, center=false);
 }
 
 // Grid block from which the cells have been subtracted.
@@ -174,6 +191,7 @@ module assembled_grid() {
 		grid_block();
 		translate([0, 0, GRID_LOW_HEIGHT+0.001])
 			grid_cells();
+		void_cells();
 	}
 }
 
