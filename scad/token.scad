@@ -14,7 +14,7 @@ CORE_HEIGHT = 1.9;
 CORNER_RADIUS = 1;
 
 // Number of segments for all the circles (rounded corners, inner circles).
-CIRCLE_RESOLUTION = 128;
+$fn = 64;
 
 ////////////////
 // Primitives //
@@ -32,7 +32,7 @@ module rounded_rect(x, y, corner_radius, center=true) {
 	minkowski() {
 		// To "compensate" for the minkowski sum, xy must be adjusted.
 		rectangle(x - 2 * corner_radius, y - 2 * corner_radius, center=center);
-		circle(r = corner_radius, $fn = CIRCLE_RESOLUTION);
+		circle(r = corner_radius);
 	}
 }
 
@@ -48,7 +48,7 @@ function addv2s(v, s) = [v[0]+s, v[1]+s];
 // The bottom part of the token, which presses the paper against the frame.
 
 // Scale factor for the core, allowing the parts to fit together.
-CORE_FIT_RATIO = .998;
+CORE_FIT_RATIO = .999;
 
 // Distance between the core and each side of the token.
 CORE_PADDING = 1;
@@ -90,7 +90,7 @@ INNER_CIRCLE_RADIUS = 4; // TODO: think about removing this.
 // Create a single circle for corners.
 module corner_circle(x, y) {
 	translate([x, y, 0])
-		circle(r = INNER_CIRCLE_RADIUS, $fn = CIRCLE_RESOLUTION);
+		circle(r = INNER_CIRCLE_RADIUS);
 }
 
 // Place circles at the four corners of the frame.
@@ -150,7 +150,7 @@ CELL_DIST = addv2s(TOKEN, INTER_CELL);
 GRID_DIM = addv2s([CELL_DIST.x * GRID.x, CELL_DIST.y * GRID.y], INTER_CELL);
 
 // Cell size increase to make the tokens fit into the cells.
-CELL_FIT_RATIO = 1.005;
+CELL_FIT_RATIO = [1.001, 1.001, 1.15];
 
 // Size of the empty space beneath each cell.
 VOID = addv2s(TOKEN, -7);
