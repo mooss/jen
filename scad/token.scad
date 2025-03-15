@@ -1,5 +1,8 @@
 ////////////////
 // Parameters //
+////////////////
+// Parameters defining dimensions and attributes of the models.
+// This is for parameters with actual values, not global variables computed from parameters.
 
 // Size of the rectangle used as the foundation of the token.
 TOKEN = [21, 30];
@@ -17,7 +20,47 @@ CORNER_RADIUS = 1;
 $fn = 64;
 
 ////////////////
+// Token core //
+
+// Scale factor for the core, allowing the parts to fit together.
+CORE_FIT_RATIO = .999;
+
+// Distance between the core and each side of the token.
+CORE_PADDING = 1;
+
+/////////////////
+// Token frame //
+
+// Width of the frame's border (the part against which the paper is pressed by the core).
+// paper is pressed).
+FRAME_BORDER = .75;
+
+// Radius of the inner circles (the circles that extend inwards from each corner at the top of the
+// frame).
+INNER_CIRCLE_RADIUS = 4; // TODO: think about removing this.
+
+/////////////////////
+// Grid parameters //
+
+// Number of cells.
+GRID = [4, 4];
+
+// Distance between each cell.
+INTER_CELL = 2;
+
+// Height of the grid at the lowest point, where the token can be inserted.
+GRID_LOW_HEIGHT = 1;
+
+// Cell size increase to make the tokens fit into the cells.
+CELL_FIT_RATIO = [1.001, 1.001, 1.15];
+
+// Distance between the token and the grid void (the token stands above the grid void, but is the
+// reference for it).
+GRID_VOID_PADDING = 2;
+
+////////////////
 // Primitives //
+////////////////
 // Shapes that are not specific to this project, but generally useful to implement it.
 
 // A regular rectangle.
@@ -45,13 +88,8 @@ function addv2s(v, s) = [v[0]+s, v[1]+s];
 
 ////////////////
 // Token core //
+////////////////
 // The bottom part of the token, which presses the paper against the frame.
-
-// Scale factor for the core, allowing the parts to fit together.
-CORE_FIT_RATIO = .999;
-
-// Distance between the core and each side of the token.
-CORE_PADDING = 1;
 
 // Size of the core.
 CORE = [TOKEN.x - 2*CORE_PADDING, TOKEN.y - 2*CORE_PADDING];
@@ -65,11 +103,8 @@ module core() {
 
 /////////////////
 // Token frame //
+/////////////////
 // The top and side part of the token, with a central void that exposes the paper underneath.
-
-// Width of the frame's border (the part against which the paper is pressed by the core).
-// paper is pressed).
-FRAME_BORDER = .75;
 
 // Size of the empty part of the frame.
 FRAME_VOID = [CORE.x - 2*FRAME_BORDER, CORE.y - 2*FRAME_BORDER];
@@ -82,10 +117,6 @@ module frame_block() {
 		rounded_rect(FRAME_VOID.x, FRAME_VOID.y, CORNER_RADIUS * (FRAME_VOID.x/TOKEN.x + FRAME_VOID.y/TOKEN.y)/2);
 	}
 }
-
-// Radius of the inner circles (the circles that extend inwards from each corner at the top of the
-// frame).
-INNER_CIRCLE_RADIUS = 4; // TODO: think about removing this.
 
 // Create a single circle for corners.
 module corner_circle(x, y) {
@@ -129,16 +160,8 @@ module assembled_frame() {
 
 //////////
 // Grid //
+//////////
 // The 2d grid on which the tokens can be placed.
-
-// Number of cells.
-GRID = [4, 4];
-
-// Distance between each cell.
-INTER_CELL = 2;
-
-// Height of the grid at the lowest point, where the token can be inserted.
-GRID_LOW_HEIGHT = 1;
 
 // Height of the grid at the highest point.
 GRID_HEIGHT = GRID_LOW_HEIGHT + TOKEN_HEIGHT;
@@ -149,11 +172,8 @@ CELL_DIST = addv2s(TOKEN, INTER_CELL);
 // Dimensions of the grid.
 GRID_DIM = addv2s([CELL_DIST.x * GRID.x, CELL_DIST.y * GRID.y], INTER_CELL);
 
-// Cell size increase to make the tokens fit into the cells.
-CELL_FIT_RATIO = [1.001, 1.001, 1.15];
-
 // Size of the empty space beneath each cell.
-VOID = addv2s(TOKEN, -7);
+GRID_VOID = addv2s(TOKEN, -GRID_VOID_PADDING);
 
 // Fundamental block of the grid from which cells can be substracted.
 module grid_block() {
@@ -179,11 +199,11 @@ module grid_cells() {
 
 // Void placed in the middle of each cell.
 module void_cells() {
-	center = (TOKEN-VOID) / 2;
+	center = (TOKEN-GRID_VOID) / 2;
 	foreach_cell()
 		translate([center[0], center[1], -.1])
 		linear_extrude(height=GRID_LOW_HEIGHT+.2)
-		rounded_rect(VOID.x, VOID.y, CORNER_RADIUS, center=false);
+		rounded_rect(GRID_VOID.x, GRID_VOID.y, CORNER_RADIUS, center=false);
 }
 
 // Grid block from which the cells have been subtracted.
@@ -201,6 +221,7 @@ module assembled_grid() {
 
 ////////////////////
 // Shape assembly //
+////////////////////
 
 scale(CORE_FIT_RATIO)
 core();
