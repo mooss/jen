@@ -2,7 +2,7 @@
 // Parameters //
 
 // Size of the rectangle used as the foundation of the token.
-TOKEN = [16, 32];
+TOKEN = [21, 30];
 
 // Total height of the token.
 TOKEN_HEIGHT = 2.5;
@@ -11,7 +11,7 @@ TOKEN_HEIGHT = 2.5;
 CORE_HEIGHT = 1.9;
 
 // Radius of the rounded corners.
-CORNER_RADIUS = 3;
+CORNER_RADIUS = 1;
 
 // Number of segments for all the circles (rounded corners, inner circles).
 CIRCLE_RESOLUTION = 128;
@@ -48,13 +48,13 @@ function addv2s(v, s) = [v[0]+s, v[1]+s];
 // The bottom part of the token, which presses the paper against the frame.
 
 // Scale factor for the core, allowing the parts to fit together.
-CORE_FIT_RATIO = .997;
+CORE_FIT_RATIO = .998;
 
-// Ratio of the core relative to the full token size.
-CORE_RATIO = .9;
+// Distance between the core and each side of the token.
+CORE_PADDING = 1;
 
 // Size of the core.
-CORE = [TOKEN.x * CORE_RATIO, TOKEN.y * CORE_RATIO];
+CORE = [TOKEN.x - 2*CORE_PADDING, TOKEN.y - 2*CORE_PADDING];
 
 // Bottom part of the token.
 // This part is rounded to minimize adhesion problems when printing it.
@@ -67,22 +67,25 @@ module core() {
 // Token frame //
 // The top and side part of the token, with a central void that exposes the paper underneath.
 
-// Width of the frame's central void.
-// Must be smaller than CORE_RATIO.
-FRAME_RATIO = .8;
+// Width of the frame's border (the part against which the paper is pressed by the core).
+// paper is pressed).
+FRAME_BORDER = .75;
+
+// Size of the empty part of the frame.
+FRAME_VOID = [CORE.x - 2*FRAME_BORDER, CORE.y - 2*FRAME_BORDER];
 
 // Subtract a smaller version of the rounded square from itself to create the fundamental block of a
 // rounded frame.
 module frame_block() {
 	difference() {
 		flat_token();
-		rounded_rect(TOKEN.x * FRAME_RATIO, TOKEN.y * FRAME_RATIO, CORNER_RADIUS * FRAME_RATIO);
+		rounded_rect(FRAME_VOID.x, FRAME_VOID.y, CORNER_RADIUS * (FRAME_VOID.x/TOKEN.x + FRAME_VOID.y/TOKEN.y)/2);
 	}
 }
 
 // Radius of the inner circles (the circles that extend inwards from each corner at the top of the
 // frame).
-INNER_CIRCLE_RADIUS = 0; // TODO: think about removing this.
+INNER_CIRCLE_RADIUS = 4; // TODO: think about removing this.
 
 // Create a single circle for corners.
 module corner_circle(x, y) {
@@ -129,7 +132,7 @@ module assembled_frame() {
 // The 2d grid on which the tokens can be placed.
 
 // Number of cells.
-GRID = [2, 2];
+GRID = [4, 4];
 
 // Distance between each cell.
 INTER_CELL = 2;
