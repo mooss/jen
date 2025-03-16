@@ -1,5 +1,9 @@
 ////////////////
 // Parameters //
+////////////////
+
+/////////////////////////////
+// Corner stone parameters //
 
 // Size of the cube forming the core of the tube joiner.
 SIZE = 30;
@@ -19,14 +23,35 @@ SUPPORT_HEIGHT = .4;
 // Radius of the support circle.
 SUPPORT_RADIUS = 15;
 
-AXES = [[1, 0, 0],  // x
-		[0, 1, 0],  // y
-		[0, 0, 1]]; // z
+// Number of fragments.
+$fn = 64;
+
+/////////////////////
+// Beam parameters //
+
+// With of the beaming tube.
+BEAM_TUBE_WIDTH = 10;
+
+// Size of the rectangle that goes around the frame tube.
+BEAM_FRAME = [20, 15, 15];
+
+// Horizontal dimensions of the transverse part of the beam (the vertical is BEAM_FRAME.z).
+BEAM_TRANSVERSE = [13, 20];
+
+// Amount by which the transverse void should be shifted vertically so that the tube is partially
+// encased.
+BEAM_TRANSVERSE_SHIFT = 1;
+
 
 ////////////////
 // Primitives //
+////////////////
 
 use <lib.scad>
+
+AXES = [[1, 0, 0],  // x
+		[0, 1, 0],  // y
+		[0, 0, 1]]; // z
 
 module octahedron(size) {
 	points=[[ 1,  0,  0],  // Right.
@@ -60,6 +85,7 @@ module truncube(cube_size, ratio) {
 
 /////////////////
 // Cornerstone //
+/////////////////
 
 // One tube resting inside the top part of the cube.
 module tube() {
@@ -97,8 +123,45 @@ module support() {
 	}
 }
 
+//////////
+// Beam //
+//////////
+
+// Extrusion can only be done vertically so some extremely annoying gymnastics is necessary.
+
+module beam_frame() {
+	translate([0, 0, BEAM_FRAME.z])
+	rotate([0, 90, 0])
+	linear_extrude(height=BEAM_FRAME.x)
+		difference() {
+		rectangle(BEAM_FRAME.z, BEAM_FRAME.y, center=false);
+		translate([BEAM_FRAME.z/2, BEAM_FRAME.y/2])
+		circle(r=TUBE_WIDTH/2);
+	}
+}
+
+module beam_transverse() {
+	translate([(BEAM_FRAME.x - BEAM_TRANSVERSE.x)/2, BEAM_TRANSVERSE.y + BEAM_FRAME.y, 0])
+		rotate([90, 0, 0])
+		linear_extrude(height=BEAM_TRANSVERSE.y)
+		difference() {
+		rectangle(BEAM_TRANSVERSE.x, BEAM_FRAME.z, center=false);
+		translate([BEAM_TRANSVERSE.x/2, BEAM_FRAME.z - BEAM_TUBE_WIDTH*0.4])
+		circle(r=BEAM_TUBE_WIDTH/2);
+	}
+}
+
+module beam() {
+	beam_frame();
+	beam_transverse();
+}
+
 ////////////////////
 // Shape assembly //
+////////////////////
 
 cornerstone();
 support();
+
+translate([SIZE, 0, 0])
+beam();
