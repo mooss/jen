@@ -1,3 +1,6 @@
+////////////////
+// Parameters //
+
 // Size of the cube forming the core of the tube joiner.
 SIZE = 30;
 
@@ -19,6 +22,11 @@ SUPPORT_RADIUS = 15;
 AXES = [[1, 0, 0],  // x
 		[0, 1, 0],  // y
 		[0, 0, 1]]; // z
+
+////////////////
+// Primitives //
+
+use <lib.scad>
 
 module octahedron(size) {
 	points=[[ 1,  0,  0],  // Right.
@@ -50,6 +58,9 @@ module truncube(cube_size, ratio) {
 	}
 }
 
+/////////////////
+// Cornerstone //
+
 // One tube resting inside the top part of the cube.
 module tube() {
 	translate([0, 0, SIZE/2 - TUBE_DEPTH])
@@ -68,7 +79,7 @@ module tubes() {
 }
 
 // A truncated cube with a hole on each face where a tube can be inserted.
-module joiner() {
+module cornerstone() {
 	difference() {
 		truncube(SIZE, TRUNCATION_RATIO);
 		tubes();
@@ -86,5 +97,8 @@ module support() {
 	}
 }
 
-joiner();
+////////////////////
+// Shape assembly //
+
+cornerstone();
 support();

@@ -62,13 +62,7 @@ GRID_VOID_PADDING = 2;
 // Primitives //
 ////////////////
 // Shapes that are not specific to this project, but generally useful to implement it.
-
-// A regular rectangle.
-module rectangle(x, y, center=true) {
-	scale([x, y, 1])
-		square(1, center=center);
-	// square(1, center=true);
-}
+use <lib.scad>
 
 // A rectangle with rounded corners.
 module rounded_rect(x, y, corner_radius, center=true) {
