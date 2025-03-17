@@ -166,6 +166,14 @@ CORNER_EXTENSION = 30;
 CORNER_TUBE_SHIFT = 3;
 CORNER_SMOOTHING = 2;
 
+module half_sphere(r) {
+	intersection() {
+		translate([-r, -r])
+			cube(r*2);
+		sphere(r);
+	}
+}
+
 module bl_corner_piece() {
 	a = [0, 0];
 	b = [CORNER_LEN, 0];
@@ -193,10 +201,12 @@ module bl_corner_piece_smooth2d() {
 
 module bl_corner_piece_smooth3d() {
 	resize([CORNER_LEN, CORNER_LEN, CORNER_HEIGHT])
-	translate([CORNER_SMOOTHING, CORNER_SMOOTHING, CORNER_SMOOTHING])
+	translate([CORNER_SMOOTHING, CORNER_SMOOTHING, CORNER_SMOOTHING/2])
 	minkowski() {
 		bl_corner_piece();
-		sphere(r=CORNER_SMOOTHING);
+		// Round everything but the top.
+		rotate([0, 180, 0])
+		half_sphere(r=CORNER_SMOOTHING);
 	}
 }
 
