@@ -24,7 +24,7 @@ SUPPORT_HEIGHT = .4;
 SUPPORT_RADIUS = 15;
 
 // Number of fragments.
-$fn = 64;
+$fn = 128;
 
 /////////////////////
 // Beam parameters //
@@ -161,10 +161,11 @@ module beam() {
 
 CORNER_LEN = 100;
 CORNER_HEIGHT = 15;
-EXT_VOID = 40;
+EXT_VOID = 60;
 CORNER_EXTENSION = 30;
-CORNER_TUBE_SHIFT = 3;
+CORNER_TUBE_SHIFT = 5;
 CORNER_SMOOTHING = 2;
+TRANSVERSE_TUBE_SHIFT = 3;
 
 module half_sphere(r) {
 	intersection() {
@@ -211,7 +212,7 @@ module bl_corner_piece_smooth3d() {
 }
 
 module frame_tube_x() {
-	translate([0, TUBE_WIDTH/2+CORNER_TUBE_SHIFT, TUBE_WIDTH*0.1])
+	translate([0, TUBE_WIDTH/2+CORNER_TUBE_SHIFT, TUBE_WIDTH*.15])
 	rotate([0, 90, 0])
 	cylinder(h=CORNER_LEN+1, r=TUBE_WIDTH/2);
 }
@@ -223,7 +224,9 @@ module frame_tube_y() {
 }
 
 module transverse_tube() {
-	translate([CORNER_LEN -BEAM_TUBE_WIDTH/2 - CORNER_TUBE_SHIFT, CORNER_TUBE_SHIFT + TUBE_WIDTH*1.5, CORNER_HEIGHT - BEAM_TUBE_WIDTH/4])
+	translate([CORNER_LEN -BEAM_TUBE_WIDTH/2 - CORNER_TUBE_SHIFT,
+			   CORNER_TUBE_SHIFT + TUBE_WIDTH + TRANSVERSE_TUBE_SHIFT,
+			   CORNER_HEIGHT - BEAM_TUBE_WIDTH*.3])
 	rotate([270, 0, 0])
 	cylinder(h=CORNER_LEN+1, r=BEAM_TUBE_WIDTH/2);
 }
@@ -249,4 +252,3 @@ beam();
 
 translate([0, -CORNER_LEN - 50,  0])
 bl_corner_beam();
-
