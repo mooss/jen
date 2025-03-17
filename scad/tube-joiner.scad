@@ -42,7 +42,6 @@ BEAM_TRANSVERSE = [13, 20];
 // encased.
 BEAM_TRANSVERSE_SHIFT = 1;
 
-
 ////////////////
 // Primitives //
 ////////////////
@@ -156,6 +155,78 @@ module beam() {
 	beam_transverse();
 }
 
+/////////////////
+// Corner beam //
+/////////////////
+
+CORNER_LEN = 100;
+CORNER_HEIGHT = 15;
+EXT_VOID = 40;
+CORNER_EXTENSION = 30;
+CORNER_TUBE_SHIFT = 3;
+CORNER_SMOOTHING = 2;
+
+module bl_corner_piece() {
+	a = [0, 0];
+	b = [CORNER_LEN, 0];
+	c = [0, CORNER_LEN];
+	linear_extrude(height=CORNER_HEIGHT)
+		difference() {
+		union() {
+			polygon([a, b, c]);
+			translate([CORNER_LEN-CORNER_EXTENSION, 0])
+				square(CORNER_EXTENSION);
+		}
+		polygon([a, [EXT_VOID, 0], [0, EXT_VOID]]);
+	}
+}
+
+module bl_corner_piece_smooth2d() {
+	resize([CORNER_LEN, CORNER_LEN, CORNER_HEIGHT])
+	translate([CORNER_SMOOTHING, CORNER_SMOOTHING, 0])
+	minkowski() {
+		bl_corner_piece();
+		linear_extrude(height=.001)
+		circle(r=CORNER_SMOOTHING);
+	}
+}
+
+module bl_corner_piece_smooth3d() {
+	resize([CORNER_LEN, CORNER_LEN, CORNER_HEIGHT])
+	translate([CORNER_SMOOTHING, CORNER_SMOOTHING, CORNER_SMOOTHING])
+	minkowski() {
+		bl_corner_piece();
+		sphere(r=CORNER_SMOOTHING);
+	}
+}
+
+module frame_tube_x() {
+	translate([0, TUBE_WIDTH/2+CORNER_TUBE_SHIFT, TUBE_WIDTH*0.1])
+	rotate([0, 90, 0])
+	cylinder(h=CORNER_LEN+1, r=TUBE_WIDTH/2);
+}
+
+module frame_tube_y() {
+	mirror([1, 0, 0])
+	rotate([0, 0, 90])
+		frame_tube_x();
+}
+
+module transverse_tube() {
+	translate([CORNER_LEN -BEAM_TUBE_WIDTH/2 - CORNER_TUBE_SHIFT, CORNER_TUBE_SHIFT + TUBE_WIDTH*1.5, CORNER_HEIGHT - BEAM_TUBE_WIDTH/4])
+	rotate([270, 0, 0])
+	cylinder(h=CORNER_LEN+1, r=BEAM_TUBE_WIDTH/2);
+}
+
+module bl_corner_beam() {
+	difference() {
+		bl_corner_piece_smooth3d();
+		frame_tube_x();
+		frame_tube_y();
+		transverse_tube();
+	}
+}
+
 ////////////////////
 // Shape assembly //
 ////////////////////
@@ -163,5 +234,9 @@ module beam() {
 cornerstone();
 support();
 
-translate([SIZE, 0, 0])
+translate([150, 0, 0])
 beam();
+
+translate([0, -CORNER_LEN - 50,  0])
+bl_corner_beam();
+
