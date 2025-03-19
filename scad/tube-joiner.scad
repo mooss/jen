@@ -32,16 +32,6 @@ $fn = 128;
 // With of the beaming tube.
 BEAM_TUBE_WIDTH = 10;
 
-// Size of the rectangle that goes around the frame tube.
-BEAM_FRAME = [20, 15, 15];
-
-// Horizontal dimensions of the transverse part of the beam (the vertical is BEAM_FRAME.z).
-BEAM_TRANSVERSE = [13, 20];
-
-// Amount by which the transverse void should be shifted vertically so that the tube is partially
-// encased.
-BEAM_TRANSVERSE_SHIFT = 1;
-
 ////////////////
 // Primitives //
 ////////////////
@@ -120,39 +110,6 @@ module support() {
 		translate([0, 0, -0.001])
 			truncube(SIZE, TRUNCATION_RATIO);
 	}
-}
-
-//////////
-// Beam //
-//////////
-
-// Extrusion can only be done vertically so some extremely annoying gymnastics is necessary.
-
-module beam_frame() {
-	translate([0, 0, BEAM_FRAME.z])
-	rotate([0, 90, 0])
-	linear_extrude(height=BEAM_FRAME.x)
-		difference() {
-		rectangle(BEAM_FRAME.z, BEAM_FRAME.y, center=false);
-		translate([BEAM_FRAME.z/2, BEAM_FRAME.y/2])
-		circle(r=TUBE_WIDTH/2);
-	}
-}
-
-module beam_transverse() {
-	translate([(BEAM_FRAME.x - BEAM_TRANSVERSE.x)/2, BEAM_TRANSVERSE.y + BEAM_FRAME.y, 0])
-		rotate([90, 0, 0])
-		linear_extrude(height=BEAM_TRANSVERSE.y)
-		difference() {
-		rectangle(BEAM_TRANSVERSE.x, BEAM_FRAME.z, center=false);
-		translate([BEAM_TRANSVERSE.x/2, BEAM_FRAME.z - BEAM_TUBE_WIDTH*0.4])
-		circle(r=BEAM_TUBE_WIDTH/2);
-	}
-}
-
-module beam() {
-	beam_frame();
-	beam_transverse();
 }
 
 /////////////////
@@ -246,9 +203,6 @@ module bl_corner_beam() {
 
 cornerstone();
 support();
-
-translate([150, 0, 0])
-beam();
 
 translate([0, -CORNER_LEN - 50,  0])
 bl_corner_beam();
