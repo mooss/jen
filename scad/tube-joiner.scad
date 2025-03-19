@@ -2,9 +2,6 @@
 // Parameters //
 ////////////////
 
-/////////////////////////////
-// Corner stone parameters //
-
 // Size of the cube forming the core of the tube joiner.
 SIZE = 30;
 
@@ -26,11 +23,14 @@ SUPPORT_RADIUS = 15;
 // Number of fragments.
 $fn = 64;
 
-/////////////////////
-// Beam parameters //
-
 // With of the beaming tube.
 BEAM_TUBE_WIDTH = 10;
+
+// Distance between the ground and the cornerstone within the foot.
+FOOT_OFFSET = 5;
+
+// Scale of the truncube to be subtracted from the feets to make the cornerstones fit within them.
+FOOT_TRUNCUBE_VOID_SCALE = 1.03;
 
 ////////////////
 // Primitives //
@@ -204,6 +204,18 @@ module bl_double_corner_beam() {
 		bl_corner_beam();
 }
 
+//////////
+// Foot //
+// TPU foot to put below each cornerstone for added grip and to avoid scraping the floor.
+
+module foot() {
+	difference() {
+		cylinder(h=SIZE/3 + FOOT_OFFSET, r=SIZE/2);
+		translate([0, 0, SIZE/2 + FOOT_OFFSET])
+		truncube(SIZE * FOOT_TRUNCUBE_VOID_SCALE, TRUNCATION_RATIO);
+	}
+}
+
 ////////////////////
 // Shape assembly //
 ////////////////////
@@ -216,3 +228,6 @@ bl_corner_beam();
 
 translate([200, 0, 0])
 bl_double_corner_beam();
+
+translate([0, 100, 0])
+foot();
