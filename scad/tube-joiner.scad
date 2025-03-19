@@ -12,7 +12,7 @@ SIZE = 30;
 TUBE_DEPTH = 8;
 
 // Witdh of the tube.
-TUBE_WIDTH = 9.75;
+TUBE_WIDTH = 9.7;
 
 // How much should the base cube be truncated.
 TRUNCATION_RATIO = .75;
@@ -24,7 +24,7 @@ SUPPORT_HEIGHT = .4;
 SUPPORT_RADIUS = 15;
 
 // Number of fragments.
-$fn = 128;
+$fn = 64;
 
 /////////////////////
 // Beam parameters //
@@ -119,7 +119,7 @@ module support() {
 CORNER_LEN = 100;
 CORNER_HEIGHT = 15;
 EXT_VOID = 60;
-CORNER_EXTENSION = 30;
+CORNER_EXTENSION = [25, 40];
 CORNER_TUBE_SHIFT = 5;
 CORNER_SMOOTHING = 2;
 TRANSVERSE_TUBE_SHIFT = 3;
@@ -132,6 +132,9 @@ module half_sphere(r) {
 	}
 }
 
+////////////
+// Single //
+
 module bl_corner_piece() {
 	a = [0, 0];
 	b = [CORNER_LEN, 0];
@@ -140,20 +143,10 @@ module bl_corner_piece() {
 		difference() {
 		union() {
 			polygon([a, b, c]);
-			translate([CORNER_LEN-CORNER_EXTENSION, 0])
-				square(CORNER_EXTENSION);
+			translate([CORNER_LEN-CORNER_EXTENSION.x, 0])
+				rectangle(CORNER_EXTENSION.x, CORNER_EXTENSION.y, center=false);
 		}
 		polygon([a, [EXT_VOID, 0], [0, EXT_VOID]]);
-	}
-}
-
-module bl_corner_piece_smooth2d() {
-	resize([CORNER_LEN, CORNER_LEN, CORNER_HEIGHT])
-	translate([CORNER_SMOOTHING, CORNER_SMOOTHING, 0])
-	minkowski() {
-		bl_corner_piece();
-		linear_extrude(height=.001)
-		circle(r=CORNER_SMOOTHING);
 	}
 }
 
@@ -168,8 +161,10 @@ module bl_corner_piece_smooth3d() {
 	}
 }
 
+FRAME_TUBE_OFFSET = TUBE_WIDTH/2 + CORNER_TUBE_SHIFT;
+
 module frame_tube_x() {
-	translate([0, TUBE_WIDTH/2+CORNER_TUBE_SHIFT, TUBE_WIDTH*.15])
+	translate([0, FRAME_TUBE_OFFSET, TUBE_WIDTH*.15])
 	rotate([0, 90, 0])
 	cylinder(h=CORNER_LEN+1, r=TUBE_WIDTH/2);
 }
@@ -183,7 +178,7 @@ module frame_tube_y() {
 module transverse_tube() {
 	translate([CORNER_LEN -BEAM_TUBE_WIDTH/2 - CORNER_TUBE_SHIFT,
 			   CORNER_TUBE_SHIFT + TUBE_WIDTH + TRANSVERSE_TUBE_SHIFT,
-			   CORNER_HEIGHT - BEAM_TUBE_WIDTH*.3])
+			   CORNER_HEIGHT - BEAM_TUBE_WIDTH*.55])
 	rotate([270, 0, 0])
 	cylinder(h=CORNER_LEN+1, r=BEAM_TUBE_WIDTH/2);
 }
@@ -192,9 +187,21 @@ module bl_corner_beam() {
 	difference() {
 		bl_corner_piece_smooth3d();
 		frame_tube_x();
-		frame_tube_y();
 		transverse_tube();
+		frame_tube_y();
 	}
+}
+
+////////////
+// Double //
+
+// Manual edition of the STL is necessary to remove the protrusions where the mirrored corners meet,
+// they could also be removed here but the ROI is too low.
+module bl_double_corner_beam() {
+	translate([-2* FRAME_TUBE_OFFSET, 0, 0])
+	bl_corner_beam();
+	mirror([1, 0, 0])
+		bl_corner_beam();
 }
 
 ////////////////////
@@ -206,3 +213,6 @@ support();
 
 translate([0, -CORNER_LEN - 50,  0])
 bl_corner_beam();
+
+translate([200, 0, 0])
+bl_double_corner_beam();
