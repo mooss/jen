@@ -26,7 +26,7 @@ func (c *Context) Build() (string, error) {
 	var buf bytes.Buffer
 	buf.WriteString("# Additional context (files)")
 
-	for path, err := range c.allPaths() {
+	for path, err := range c.allPaths {
 		if err != nil {
 			return "", c.wrap(err)
 		}
@@ -39,22 +39,18 @@ func (c *Context) Build() (string, error) {
 	return buf.String(), nil
 }
 
-// allPath returns an iterator on all paths contained in the context.
-//
-//nolint:revive
-func (c *Context) allPaths() iter.Seq2[string, error] {
-	return func(yield func(string, error) bool) {
-		for _, path := range c.Files {
-			if !yield(path, nil) {
-				return
-			}
+// allPaths returns an iterator on all paths contained in the context.
+func (c *Context) allPaths(yield func(string, error) bool) {
+	for _, path := range c.Files {
+		if !yield(path, nil) {
+			return
 		}
+	}
 
-		for _, dir := range c.Dirs {
-			for path, err := range iterFiles(dir) {
-				if !yield(path, err) {
-					return
-				}
+	for _, dir := range c.Dirs {
+		for path, err := range iterFiles(dir) {
+			if !yield(path, err) {
+				return
 			}
 		}
 	}
