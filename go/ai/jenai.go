@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 
 	"github.com/mooss/bagend/go/flag"
@@ -36,6 +38,22 @@ func main() {
 	if cfg.List {
 		for name := range library.Prompts {
 			fmt.Println(name)
+		}
+		os.Exit(0)
+	}
+
+	if cfg.ListModels { // Align and print in sorted order.
+		longest := 0
+		for _, spec := range models.ModelSpecs {
+			if len(spec.ShortName) > longest {
+				longest = len(spec.ShortName)
+			}
+		}
+
+		format := fmt.Sprintf("%%-%ds  (%%s/%%s)\n", longest)
+		for _, short := range slices.Sorted(maps.Keys(models.ModelSpecs)) {
+			spec := models.ModelSpecs[short]
+			fmt.Printf(format, spec.ShortName, spec.Provider, spec.Author)
 		}
 		os.Exit(0)
 	}

@@ -17,6 +17,7 @@ type Jenai struct {
 	DryRun      bool
 	Interactive bool
 	List        bool
+	ListModels  bool
 	Model       string
 	OneShot     bool
 	Paste       bool
@@ -44,6 +45,8 @@ func (conf *Jenai) RegisterCLI() *flag.Parser {
 		Alias("i")
 	parser.Bool("list", &conf.List, "list all available prompts").
 		Alias("l")
+	parser.Bool("list-models", &conf.ListModels, "list all available models").
+		Alias("lm")
 	parser.Bool("linum", &conf.Context.LineNumbers, "Print files with line numbers")
 	parser.String("model", &conf.Model, "Model name").
 		Alias("m").Default("gemini-flash")
