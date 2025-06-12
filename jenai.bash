@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-HERE=$(dirname $(readlink "$0"))
+HERE=$(dirname $(readlink -m "$0"))
 go run "$HERE"/go/ai/jenai.go "$@"
