@@ -44,6 +44,7 @@ func (conf *Jenai) RegisterCLI() *flag.Parser {
 		Alias("i")
 	parser.Bool("list", &conf.List, "list all available prompts").
 		Alias("l")
+	parser.Bool("linum", &conf.Context.LineNumbers, "Print files with line numbers")
 	parser.String("model", &conf.Model, "Model name").
 		Alias("m").Default("gemini-flash")
 	parser.Bool("oneshot", &conf.OneShot, "Use positional arguments as the prompt").

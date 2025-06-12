@@ -1,20 +1,26 @@
 package config
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"iter"
 	"os"
 	"path/filepath"
 )
 
+///////////////////
+// Context class //
+
 // Context handles inclusion of files and directories as context.
 type Context struct {
-	Files []string
-	Dirs  []string
-	Above bool
+	Files       []string
+	Dirs        []string
+	Above       bool
+	LineNumbers bool
 }
 
 func (c *Context) Empty() bool { return len(c.Files) == 0 && len(c.Dirs) == 0 }
@@ -31,7 +37,7 @@ func (c *Context) Build() (string, error) {
 			return "", c.wrap(err)
 		}
 
-		if err := fileContent(&buf, path); err != nil {
+		if err := fileContent(&buf, path, c.LineNumbers); err != nil {
 			return "", c.wrap(err)
 		}
 	}
@@ -60,17 +66,38 @@ func (*Context) wrap(err error) error {
 	return fmt.Errorf("failed to build file context: %s", err)
 }
 
+///////////////////////
+// Utility functions //
+
 // fileContent reads a file and fills the buffer with its content, along with a header.
 //
 //nolint:revive
-func fileContent(buf *bytes.Buffer, path string) error {
-	content, err := os.ReadFile(path)
+func fileContent(buf *bytes.Buffer, path string, linum bool) error {
+	file, err := os.Open(path)
 	if err != nil {
-		return fmt.Errorf("error reading file %s: %w", path, err)
+		return fmt.Errorf("error opening file %s: %w", path, err)
 	}
+	defer file.Close()
 
 	buf.WriteString("\n\n====> START OF " + path + " <====\n\n")
-	buf.Write(content)
+
+	if linum {
+		scanner := bufio.NewScanner(file)
+		lineNumber := 1
+		for scanner.Scan() {
+			buf.WriteString(fmt.Sprintf("%d: %s\n", lineNumber, scanner.Text()))
+			lineNumber++
+		}
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf("error reading file %s line by line: %w", path, err)
+		}
+	} else {
+		_, err := io.Copy(buf, file)
+		if err != nil {
+			return fmt.Errorf("error writing file content to buffer for %s: %w", path, err)
+		}
+	}
+
 	buf.WriteString("\n\n====> END OF " + path + " <====")
 	return nil
 }
