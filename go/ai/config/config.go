@@ -45,7 +45,7 @@ func (conf *Jenai) RegisterCLI() *flag.Parser {
 	parser.Bool("list", &conf.List, "list all available prompts").
 		Alias("l")
 	parser.String("model", &conf.Model, "Model name").
-		Alias("m").Default("gemini")
+		Alias("m").Default("gemini-flash")
 	parser.Bool("oneshot", &conf.OneShot, "Use positional arguments as the prompt").
 		Alias("o")
 	parser.Bool("paste", &conf.Paste, "Use clipboard content as prompt")
