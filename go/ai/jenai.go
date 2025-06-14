@@ -144,7 +144,7 @@ func tee(teefile string, session config.SessionMetadata, prompt config.Prompt) e
 		return err
 	}
 
-	content := strings.Join([]string{"---", string(metadata), last.Content, "..."}, "\n")
+	content := strings.Join([]string{"---", string(metadata) + "...\n", last.Content}, "\n")
 	return os.WriteFile(teefile, []byte(content), 0644)
 }
 
