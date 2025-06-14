@@ -55,7 +55,7 @@ func (conf *Jenai) RegisterCLI() *flag.Parser {
 	parser.Bool("paste", &conf.Paste, "Use clipboard content as prompt")
 	parser.String("session", &conf.session.Name,
 		"Reuse or create specific session name (/last for most recent session)")
-	parser.String("tee", &conf.TeeFile, "Output first answer to both stdout and FILE")
+	parser.String("tee", &conf.TeeFile, "Output first answer to both stdout and FILE (overwritten)")
 
 	return parser
 }
@@ -93,14 +93,11 @@ func (conf *Jenai) Validate() error {
 	return nil
 }
 
-////////////
-// Prompt //
-
 // BuildPrompt returns the complete prompt, taking all sources into account (prompt, clipboard and
 // positional argument).
 // Prompt and clipboard are mutually exclusive.
 // The prompt is evaluated.
-func (conf *Jenai) BuildPrompt(lib prompts.Library) (string, error) {
+func (conf *Jenai) BuildPrompt(lib prompts.Library) (Prompt, error) {
 	// Select primary source.
 	get := func() (string, error) {
 		return prompts.NewEvalContext(lib, &conf.Positional).Evaluate(conf.PromptName)
@@ -113,45 +110,25 @@ func (conf *Jenai) BuildPrompt(lib prompts.Library) (string, error) {
 		get = readClipboard
 	}
 
-	// Add primary source.
-	buf := []string{}
-	if primary, err := get(); err != nil {
-		return "", err
-	} else if primary != "" {
-		buf = append(buf, primary)
-	}
-
-	// Add positional arguments.
-	if len(conf.Positional) > 0 {
-		buf = append(buf, strings.Join(conf.Positional, " "))
-	}
-
-	// Add context files.
-	buf, err := conf.addContext(buf)
+	primary, err := get()
 	if err != nil {
-		return "", err
+		return Prompt{}, err
 	}
 
-	return strings.Join(buf, "\n\n"), nil
-}
-
-func (conf *Jenai) addContext(buf []string) ([]string, error) {
-	if conf.Context.Empty() {
-		return buf, nil
-	}
-
-	context, err := conf.Context.Build()
+	context, paths, err := conf.Context.Build()
 	if err != nil {
-		return nil, err
+		return Prompt{}, err
 	}
 
-	if conf.Context.Above {
-		buf = append([]string{context}, buf...)
-	} else {
-		buf = append(buf, context)
+	res := Prompt{
+		Context:      context,
+		ContextAbove: conf.Context.Above,
+		Paths:        paths,
+		Positional:   strings.Join(conf.Positional, " "),
+		Primary:      primary,
 	}
 
-	return buf, nil
+	return res, nil
 }
 
 /////////////

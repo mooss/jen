@@ -9,11 +9,13 @@ import (
 	"os/exec"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/mooss/bagend/go/flag"
 	"github.com/mooss/jen/go/ai/config"
 	"github.com/mooss/jen/go/ai/models"
 	"github.com/mooss/jen/go/ai/prompts"
+	"gopkg.in/yaml.v3"
 )
 
 func main() {
@@ -104,23 +106,23 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 		noerr0(cmd.Run())
 	}
 
-	if prompt != "" {
-		aichat(strings.NewReader(prompt))
+	if !prompt.Empty() {
+		aichat(strings.NewReader(prompt.String()))
 		if cfg.TeeFile != "" {
-			if err := tee(cfg.TeeFile, session); err != nil {
+			if err := tee(cfg.TeeFile, session, prompt); err != nil {
 				fmt.Fprintf(os.Stderr,
 					"can't tee to %s (will proceed nonetheless): %s", cfg.TeeFile, err)
 			}
 		}
 	}
 
-	// If interactive mode or session specified without prompt, start interactive session.
-	if cfg.Interactive || (session.Requested && prompt == "") {
+	// Handle interactive mode.
+	if cfg.Interactive || (session.Requested && prompt.Empty()) {
 		aichat(os.Stdin)
 	}
 }
 
-func tee(teefile string, session config.SessionMetadata) error {
+func tee(teefile string, session config.SessionMetadata, prompt config.Prompt) error {
 	conv, err := session.Load()
 	if err != nil {
 		return err
@@ -131,7 +133,19 @@ func tee(teefile string, session config.SessionMetadata) error {
 	}
 
 	last := conv.Messages[len(conv.Messages)-1]
-	return os.WriteFile(teefile, []byte(last.Content), 0644)
+	metadata, err := yaml.Marshal(map[string]any{
+		"title":   "Conversation with " + conv.Model,
+		"date":    time.Now().Format("2006-01-02"),
+		"model":   conv.Model,
+		"prompt":  prompt.Static(),
+		"context": prompt.Paths,
+	})
+	if err != nil {
+		return err
+	}
+
+	content := strings.Join([]string{"---", string(metadata), last.Content, "..."}, "\n")
+	return os.WriteFile(teefile, []byte(content), 0644)
 }
 
 func modelSpec(cfg *config.Jenai) (models.Spec, error) {

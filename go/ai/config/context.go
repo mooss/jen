@@ -27,24 +27,27 @@ type Context struct {
 
 func (c *Context) Empty() bool { return len(c.Files) == 0 && len(c.Dirs) == 0 }
 
-// Build generates the context string from included files and directories.
+// Build returns the context string from included paths and the included paths.
 // Empty should be checked before calling this because the "additional context" header is always
 // present,
-func (c *Context) Build() (string, error) {
+func (c *Context) Build() (string, []string, error) {
 	var buf bytes.Buffer
+	paths := []string{}
 	buf.WriteString("# Additional context (files)")
 
 	for path, err := range c.allPaths {
 		if err != nil {
-			return "", c.wrap(err)
+			return "", nil, c.wrap(err)
 		}
 
 		if err := fileContent(&buf, path, c.LineNumbers); err != nil {
-			return "", c.wrap(err)
+			return "", nil, c.wrap(err)
 		}
+
+		paths = append(paths, path)
 	}
 
-	return buf.String(), nil
+	return buf.String(), paths, nil
 }
 
 // allPaths returns an iterator on all paths contained in the context.
