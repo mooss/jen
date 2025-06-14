@@ -4,7 +4,8 @@ nothing:
 	@echo -n 'jen '
 	@git rev-parse HEAD
 
-test: go-test bash-test
+test:
+	@$(MAKE) go-test bash-test
 
 go-test:
 	go test ./go/...
@@ -18,3 +19,6 @@ lint:
 	  --max-same-issues 0\
 	  --allow-parallel-runners\
 	  --sort-results
+
+install:
+	go install go/ai/jenai.go
