@@ -17,13 +17,13 @@ prompts:
   staged_check: |-
     {{ per "jaded_dev" }}
 
-    {{ ins "analyse_diff" }}
+    {{ ins "analyse_code" }}
 
     {{ sec1 "git_diff" "--staged" }}
   previous_commit_check: |-
     {{ per "jaded_dev" }}
 
-    {{ ins "analyse_diff" }}
+    {{ ins "analyse_code" }}
 
     {{ sec1 "git_diff" "HEAD^" "HEAD" }}
 
@@ -84,12 +84,18 @@ instructions:
     Remember, only one question at a time.
 
     # Idea
-  analyse_diff: |-
-    Analyse a diff to find mistakes.
-    One mistake per line, no code, no details.
+  analyse_code: |-
+    Review this code and print ONLY major bugs that will break functionality:
+    - Logic errors
+    - Security vulnerabilities
+    - Runtime crashes
+    - Data corruption risks
+    - Memory leaks
+
+    Skip style issues, minor inefficiencies, or nitpicks. If the code works correctly despite being ugly, just say "No major issues found."
 
     ## Format
-    file:firstline: Analysis.
+    filename:firstline: Brief description of critical problem.
 
 #######################
 # Sections of level 1 #
