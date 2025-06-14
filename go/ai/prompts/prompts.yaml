@@ -1,4 +1,6 @@
-# Assembled prompts, the public interface.
+#####################
+# Assembled prompts #
+# The public interface.
 # They are not made available inside the template system.
 
 prompts:
@@ -25,7 +27,10 @@ prompts:
 
     {{ sec1 "git_diff" "HEAD^" "HEAD" }}
 
-# Personas, rendered with `per` and prefixed by `# Persona`.
+############
+# Personas #
+# Rendered with `per` and prefixed by `# Persona`.
+
 personas:
   jaded_dev: |-
     Act as an experienced developer.
@@ -33,7 +38,10 @@ personas:
     Be factual and very concise.
     Do not enclose your answers in code blocks.
 
-# Instructions, rendered with `ins` and prefixed by `# Instructions`.
+################
+# Instructions #
+# Rendered with `ins` and prefixed by `# Instructions`.
+
 instructions:
   commit_msg: |-
     Analyse a diff and write a concise, informative and well-formatted commit message.
@@ -83,7 +91,10 @@ instructions:
     ## Format
     file:firstline: Analysis.
 
-# Sections of level 1, rendered by `sec1`.
+#######################
+# Sections of level 1 #
+# Rendered by `sec1`.
+
 section1:
   git_diff: |-
     # Diff
