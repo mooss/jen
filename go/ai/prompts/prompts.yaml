@@ -1,12 +1,7 @@
 # Assembled prompts, the public interface.
 # They are not made available inside the template system.
+
 prompts:
-  review_diff: |-
-    {{ per "jaded_dev" }}
-
-    {{ ins "code_review" }}
-
-    {{ sec1 "git_diff" "HEAD^" "HEAD" }}
   commit_message: |-
     {{ per "jaded_dev" }}
 
@@ -20,9 +15,16 @@ prompts:
   staged_check: |-
     {{ per "jaded_dev" }}
 
-    {{ ins "staged_check" }}
+    {{ ins "analyse_diff" }}
 
     {{ sec1 "git_diff" "--staged" }}
+  previous_commit_check: |-
+    {{ per "jaded_dev" }}
+
+    {{ ins "analyse_diff" }}
+
+    {{ sec1 "git_diff" "HEAD^" "HEAD" }}
+
 # Personas, rendered with `per` and prefixed by `# Persona`.
 personas:
   jaded_dev: |-
@@ -33,13 +35,6 @@ personas:
 
 # Instructions, rendered with `ins` and prefixed by `# Instructions`.
 instructions:
-  code_review: |-
-    You are reviewing code.
-
-    Do not explain the changes that have been made.
-
-    Don't waste time on pointless details, provide short explanations only, we'll discuss later if we need it.
-    Do not mention good things about the code, I don't care, the only good thing is silence.
   commit_msg: |-
     Analyse a diff and write a concise, informative and well-formatted commit message.
     The commit message should clearly and accurately summarize the changes in the diff.
@@ -81,7 +76,7 @@ instructions:
     Remember, only one question at a time.
 
     # Idea
-  staged_check: |-
+  analyse_diff: |-
     Analyse a diff to find mistakes.
     One mistake per line, no code, no details.
 
