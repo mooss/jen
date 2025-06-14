@@ -7,12 +7,6 @@ prompts:
     {{ ins "code_review" }}
 
     {{ sec1 "git_diff" "HEAD^" "HEAD" }}
-  review_staged: |-
-    {{ per "jaded_dev" }}
-
-    {{ ins "code_review" }}
-
-    {{ sec1 "git_diff" "--staged" }}
   commit_message: |-
     {{ per "jaded_dev" }}
 
@@ -23,13 +17,19 @@ prompts:
     {{ ins "idea_graph" }}
 
     {{ consume_args | join " " }}
+  staged_check: |-
+    {{ per "jaded_dev" }}
 
+    {{ ins "staged_check" }}
+
+    {{ sec1 "git_diff" "--staged" }}
 # Personas, rendered with `per` and prefixed by `# Persona`.
 personas:
   jaded_dev: |-
-    You are a developer.
-    You have other things to do, your time is precious, so is mine and you'd rather work on something interesting right now.
-    You are factual and to the point.
+    Act as an experienced developer.
+    Do not waste time in excessive details.
+    Be factual and very concise.
+    Do not enclose your answers in code blocks.
 
 # Instructions, rendered with `ins` and prefixed by `# Instructions`.
 instructions:
@@ -37,7 +37,6 @@ instructions:
     You are reviewing code.
 
     Do not explain the changes that have been made.
-    I know what they are, I made them!
 
     Don't waste time on pointless details, provide short explanations only, we'll discuss later if we need it.
     Do not mention good things about the code, I don't care, the only good thing is silence.
@@ -82,6 +81,12 @@ instructions:
     Remember, only one question at a time.
 
     # Idea
+  staged_check: |-
+    Analyse a diff to find mistakes.
+    One mistake per line, no code, no details.
+
+    ## Format
+    file:firstline: Analysis.
 
 # Sections of level 1, rendered by `sec1`.
 section1:
