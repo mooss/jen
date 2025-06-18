@@ -134,7 +134,6 @@ func tee(teefile string, session config.SessionMetadata, prompt config.Prompt) e
 
 	last := conv.Messages[len(conv.Messages)-1]
 	metadata, err := yaml.Marshal(map[string]any{
-		"title":   "Conversation with " + conv.Model,
 		"date":    time.Now().Format("2006-01-02"),
 		"model":   conv.Model,
 		"prompt":  prompt.Static(),
