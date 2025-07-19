@@ -1,4 +1,4 @@
-.PHONY: nothing test lint
+.PHONY: nothing test go-test bash-test lint install
 
 nothing:
 	@echo -n 'jen '
