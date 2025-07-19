@@ -49,7 +49,7 @@ func (conf *Jenai) RegisterCLI() *flag.Parser {
 		Alias("lm")
 	parser.Bool("linum", &conf.Context.LineNumbers, "Print files with line numbers")
 	parser.String("model", &conf.Model, "Model name").
-		Alias("m").Default("gemini-flash")
+		Alias("m").Default("gemma3")
 	parser.Bool("oneshot", &conf.OneShot, "Use positional arguments as the prompt").
 		Alias("o")
 	parser.Bool("paste", &conf.Paste, "Use clipboard content as prompt")
