@@ -7,6 +7,7 @@ import (
 	"maps"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -18,7 +19,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var home = os.Getenv("HOME")
+var configDir = filepath.Join(home, ".config", "jenai")
+
 func main() {
+	ensureConfig()
 	cfg, parser := conf()
 
 	if len(os.Args) == 1 { // No arguments, print help.
@@ -79,6 +84,64 @@ func main() {
 
 //////////////////////////
 // High-level utilities //
+
+func ensureConfig() error {
+	err, alreadyExists := ensureConfigDir()
+	if err != nil || alreadyExists {
+		return err
+	}
+
+	fmt.Println("Initialized config file in", configDir)
+
+	err = writeConfigFile("models.yaml", models.EmbeddedBytes)
+	if err != nil {
+		return err
+	}
+
+	err = writeConfigFile("prompts.yaml", prompts.EmbeddedBytes)
+
+	return err
+}
+
+// ensureConfigDir tests if the directory already exists and creates it if it doesn't.
+// Returns true when the directory already exists.
+func ensureConfigDir() (error, bool) {
+	err, exists := fileExists(home)
+	if err != nil || !exists {
+		return fmt.Errorf("$HOME is invalid (%s): %w", home, err), false
+	}
+
+	err, exists = fileExists(configDir)
+	if err != nil || exists {
+		return err, true
+	}
+
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return fmt.Errorf("failed to create config dir: %w", err), false
+	}
+
+	return nil, false
+}
+
+func fileExists(filename string) (error, bool) {
+	_, err := os.Stat(filename)
+	if err == nil {
+		return nil, true
+	}
+
+	if os.IsNotExist(err) {
+		err = nil
+	}
+
+	return err, false
+}
+
+func writeConfigFile(path string, data []byte) error {
+	if err := os.WriteFile(filepath.Join(configDir, path), data, 0644); err != nil {
+		return fmt.Errorf("failed to write %s: %w", path, err)
+	}
+	return nil
+}
 
 func conf() (*config.Jenai, *flag.Parser) {
 	cfg := config.Jenai{}

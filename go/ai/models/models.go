@@ -9,7 +9,7 @@ import (
 )
 
 //go:embed models.yaml
-var embeddedBytes []byte
+var EmbeddedBytes []byte
 
 type Spec struct {
 	// ShortName of the model, e.g., "r1".
@@ -26,7 +26,7 @@ type Zoo struct {
 	Models map[string]Spec `yaml:"models"`
 }
 
-var loadModels = utils.OnceErr(func() (map[string]Spec, error) { return FromYAML(embeddedBytes) })
+var loadModels = utils.OnceErr(func() (map[string]Spec, error) { return FromYAML(EmbeddedBytes) })
 
 func FromYAML(data []byte) (map[string]Spec, error) {
 	res, err := utils.FromYAML[Zoo](data)

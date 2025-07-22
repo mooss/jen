@@ -9,7 +9,7 @@ import (
 )
 
 //go:embed prompts.yaml
-var embeddedBytes []byte
+var EmbeddedBytes []byte
 
 type Library struct {
 	Prompts      map[string]string `yaml:"prompts"`
@@ -18,7 +18,7 @@ type Library struct {
 	Section1     map[string]string `yaml:"section1"`
 }
 
-var Embedded = utils.OnceErr(func() (Library, error) { return FromYAML(embeddedBytes) })
+var Embedded = utils.OnceErr(func() (Library, error) { return FromYAML(EmbeddedBytes) })
 
 func FromYAML(data []byte) (Library, error) {
 	res, err := utils.FromYAML[Library](data)
