@@ -30,7 +30,16 @@ var loadModels = utils.OnceErr(func() (map[string]Spec, error) { return FromYAML
 
 func FromYAML(data []byte) (map[string]Spec, error) {
 	res, err := utils.FromYAML[Zoo](data)
-	return utils.Wrapf(res.Models, err, "failed to load model zoo from YAML")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load model zoo from YAML: %w", err)
+	}
+
+	for shortName, spec := range res.Models {
+		spec.ShortName = shortName
+		res.Models[shortName] = spec
+	}
+
+	return res.Models, nil
 }
 
 // ModelSpecs returns the map of model short names to their specifications.
