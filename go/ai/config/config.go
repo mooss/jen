@@ -80,11 +80,6 @@ func (conf *Jenai) ParseCLI(parser *flag.Parser, args []string) error {
 
 // Validate returns an error when the configuration is incoherent.
 func (conf *Jenai) Validate() error {
-	// Validate mutual exclusivity.
-	if conf.Paste && conf.OneShot {
-		return errors.New("--paste and --oneshot are mutually exclusive")
-	}
-
 	// Validate that positional arguments are provided when needed.
 	if !conf.Paste && len(conf.rawPositional) == 0 && conf.session.Name == "" {
 		return errors.New("No positional arguments provided")
@@ -104,10 +99,10 @@ func (conf *Jenai) BuildPrompt(lib prompts.Library) (Prompt, error) {
 	}
 
 	switch {
-	case conf.OneShot:
-		get = func() (string, error) { return "", nil }
 	case conf.Paste:
 		get = readClipboard
+	case conf.OneShot:
+		get = func() (string, error) { return "", nil }
 	}
 
 	primary, err := get()

@@ -30,12 +30,12 @@ func (p Prompt) String() string {
 
 func (p Prompt) static() []string {
 	buf := []string{}
-	if len(p.Primary) > 0 {
-		buf = append(buf, p.Primary)
-	}
-
 	if len(p.Positional) > 0 {
 		buf = append(buf, p.Positional)
+	}
+
+	if len(p.Primary) > 0 {
+		buf = append(buf, p.Primary)
 	}
 
 	return buf
