@@ -5,6 +5,7 @@ package utils
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"gopkg.in/yaml.v3"
 )
@@ -49,4 +50,22 @@ func Wrap(err *error, format string, args ...any) {
 	}
 
 	*err = fmt.Errorf(format+": %w", append(args, *err)...)
+}
+
+// OnceErr returns a function that calls mk exactly once and caches the result.
+// Subsequent calls will return the cached value.
+// The returned function is safe for concurrent use.
+func OnceErr[T any](mk func() (T, error)) func() (T, error) {
+	type cache struct {
+		value T
+		err   error
+	}
+	get := sync.OnceValue(func() cache {
+		value, err := mk()
+		return cache{value, err}
+	})
+	return func() (T, error) {
+		res := get()
+		return res.value, res.err
+	}
 }

@@ -1,0 +1,78 @@
+models:
+  gpt-4.1:
+    short_name: gpt-4.1
+    provider: openrouter
+    author: openai
+    model: gpt-4.1
+
+  gpt-4.1-mini:
+    short_name: gpt-4.1-mini
+    provider: openrouter
+    author: openai
+    model: gpt-4.1-mini
+
+  gpt-4.1-nano:
+    short_name: gpt-4.1-nano
+    provider: openrouter
+    author: openai
+    model: gpt-4.1-nano
+
+  gemma3:
+    short_name: gemma3
+    provider: openrouter
+    author: google
+    model: gemma-3-27b-it:nitro
+
+  gemini-pro:
+    short_name: gemini-pro
+    provider: openrouter
+    author: google
+    model: gemini-2.5-pro-preview:nitro
+
+  r1:
+    short_name: r1
+    provider: openrouter
+    author: deepseek
+    model: deepseek-r1-0528:nitro
+
+  ds-v3:
+    short_name: ds-v3
+    provider: openrouter
+    author: deepseek
+    model: deepseek-chat:nitro
+
+  haiku:
+    short_name: haiku
+    provider: openrouter
+    author: anthropic
+    model: claude-3.5-haiku
+
+  sonnet:
+    short_name: sonnet
+    provider: openrouter
+    author: anthropic
+    model: claude-sonnet-4
+
+  opus:
+    short_name: opus
+    provider: openrouter
+    author: anthropic
+    model: claude-opus-4
+
+  qwco:
+    short_name: qwco
+    provider: openrouter
+    author: qwen
+    model: qwen-2.5-coder-32b-instruct
+
+  codestral:
+    short_name: codestral
+    provider: openrouter
+    author: mistralai
+    model: codestral-2501
+
+  kimi-k2:
+    short_name: kimi-k2
+    provider: openrouter
+    author: moonshotai
+    model: kimi-k2:nitro

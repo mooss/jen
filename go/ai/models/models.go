@@ -2,41 +2,53 @@
 package models
 
 import (
+	_ "embed"
 	"fmt"
+
+	"github.com/mooss/jen/go/utils"
 )
 
+//go:embed models.yaml
+var embeddedBytes []byte
+
 type Spec struct {
-	// ShortName of the model, e.g., "codestral"
-	ShortName string
-	// Provider of the model, e.g., "openrouter"
-	Provider string
-	// Author of the model, e.g., "mistralai"
-	Author string
-	// Model identifier, e.g., "codestral-2501"
-	Model string
+	// ShortName of the model, e.g., "r1".
+	ShortName string `yaml:"short_name"`
+	// Provider of the model, e.g., "openrouter".
+	Provider  string `yaml:"provider"`
+	// Author of the model, e.g., "deepseek".
+	Author    string `yaml:"author"`
+	// Model identifier, e.g., "deepseek-r1-0528:nitro".
+	Model     string `yaml:"model"`
 }
 
-//nolint:revive
-var ModelSpecs = map[string]Spec{
-	"gpt-4.1":      {ShortName: "gpt-4.1", Provider: "openrouter", Author: "openai", Model: "gpt-4.1"},
-	"gpt-4.1-mini": {ShortName: "gpt-4.1-mini", Provider: "openrouter", Author: "openai", Model: "gpt-4.1-mini"},
-	"gpt-4.1-nano": {ShortName: "gpt-4.1-nano", Provider: "openrouter", Author: "openai", Model: "gpt-4.1-nano"},
+type Zoo struct {
+	Models map[string]Spec `yaml:"models"`
+}
 
-	"gemma3":     {ShortName: "gemma3", Provider: "openrouter", Author: "google", Model: "gemma-3-27b-it:nitro"},
-	"gemini-pro": {ShortName: "gemini-pro", Provider: "openrouter", Author: "google", Model: "gemini-2.5-pro-preview:nitro"},
+var loadModels = utils.OnceErr(func() (map[string]Spec, error) { return FromYAML(embeddedBytes) })
 
-	"r1":    {ShortName: "r1", Provider: "openrouter", Author: "deepseek", Model: "deepseek-r1-0528:nitro"},
-	"ds-v3": {ShortName: "ds-v3", Provider: "openrouter", Author: "deepseek", Model: "deepseek-chat:nitro"},
+func FromYAML(data []byte) (map[string]Spec, error) {
+	res, err := utils.FromYAML[Zoo](data)
+	return utils.Wrapf(res.Models, err, "failed to load model zoo from YAML")
+}
 
-	"haiku":  {ShortName: "haiku", Provider: "openrouter", Author: "anthropic", Model: "claude-3.5-haiku"},
-	"sonnet": {ShortName: "sonnet", Provider: "openrouter", Author: "anthropic", Model: "claude-sonnet-4"},
-	"opus":   {ShortName: "opus", Provider: "openrouter", Author: "anthropic", Model: "claude-opus-4"},
+// ModelSpecs returns the map of model short names to their specifications.
+func ModelSpecs() (map[string]Spec, error) {
+	return loadModels()
+}
 
-	"qwco": {ShortName: "qwco", Provider: "openrouter", Author: "qwen", Model: "qwen-2.5-coder-32b-instruct"},
-
-	"codestral": {ShortName: "codestral", Provider: "openrouter", Author: "mistralai", Model: "codestral-2501"},
-
-	"kimi-k2": {ShortName: "kimi-k2", Provider: "openrouter", Author: "moonshotai", Model: "kimi-k2:nitro"},
+// Get returns the specification for the given short name.
+func Get(shortName string) (Spec, error) {
+	specs, err := ModelSpecs()
+	if err != nil {
+		return Spec{}, err
+	}
+	spec, ok := specs[shortName]
+	if !ok {
+		return Spec{}, fmt.Errorf("unknown model: %s", shortName)
+	}
+	return spec, nil
 }
 
 // Aichat returns the model name as aichat's --model flag expects it.

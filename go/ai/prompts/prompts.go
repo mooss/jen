@@ -4,7 +4,6 @@ package prompts
 import (
 	_ "embed"
 	"fmt"
-	"sync"
 
 	"github.com/mooss/jen/go/utils"
 )
@@ -19,7 +18,7 @@ type Library struct {
 	Section1     map[string]string `yaml:"section1"`
 }
 
-var Embedded = onceErr(func() (Library, error) { return FromYAML(embeddedBytes) })
+var Embedded = utils.OnceErr(func() (Library, error) { return FromYAML(embeddedBytes) })
 
 func FromYAML(data []byte) (Library, error) {
 	res, err := utils.FromYAML[Library](data)
@@ -34,22 +33,4 @@ func (lib Library) RawPrompt(name string) (string, error) {
 	}
 
 	return source, nil
-}
-
-///////////////
-// Utilities //
-
-func onceErr[T any](mk func() (T, error)) func() (T, error) {
-	type cache struct {
-		value T
-		err   error
-	}
-	get := sync.OnceValue(func() cache {
-		value, err := mk()
-		return cache{value, err}
-	})
-	return func() (T, error) {
-		res := get()
-		return res.value, res.err
-	}
 }

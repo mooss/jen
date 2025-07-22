@@ -45,16 +45,20 @@ func main() {
 	}
 
 	if cfg.ListModels { // Align and print in sorted order.
+		specs, err := models.ModelSpecs()
+		if err != nil {
+			fatal(err)
+		}
 		longest := 0
-		for _, spec := range models.ModelSpecs {
+		for _, spec := range specs {
 			if len(spec.ShortName) > longest {
 				longest = len(spec.ShortName)
 			}
 		}
 
 		format := fmt.Sprintf("%%-%ds  (%%s/%%s)\n", longest)
-		for _, short := range slices.Sorted(maps.Keys(models.ModelSpecs)) {
-			spec := models.ModelSpecs[short]
+		for _, short := range slices.Sorted(maps.Keys(specs)) {
+			spec := specs[short]
 			fmt.Printf(format, spec.ShortName, spec.Provider, spec.Author)
 		}
 		os.Exit(0)
@@ -148,12 +152,7 @@ func tee(teefile string, session config.SessionMetadata, prompt config.Prompt) e
 }
 
 func modelSpec(cfg *config.Jenai) (models.Spec, error) {
-	spec, exists := models.ModelSpecs[cfg.Model]
-	if !exists {
-		return spec, fmt.Errorf("unknown model: %s", cfg.Model)
-	}
-
-	return spec, nil
+	return models.Get(cfg.Model)
 }
 
 ////////////////
