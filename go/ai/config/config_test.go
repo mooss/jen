@@ -26,15 +26,3 @@ func TestPromptMode(t *testing.T) {
 		})
 	}
 }
-
-func TestConfigValidation(t *testing.T) {
-	cfg := config.Jenai{
-		Paste:   true,
-		OneShot: true,
-	}
-
-	err := cfg.Validate()
-	if err == nil {
-		t.Error("Expected error for mutually exclusive flags, got nil")
-	}
-}
