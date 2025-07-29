@@ -48,7 +48,7 @@ func (conf *Jenai) RegisterCLI() *flag.Parser {
 	parser.Bool("list-models", &conf.ListModels, "list all available models").
 		Alias("lm")
 	parser.Bool("linum", &conf.Context.LineNumbers, "Print files with line numbers")
-	parser.String("model", &conf.Model, "Model name").
+	parser.String("model", &conf.Model, "Model name (short name from --lm or provider:author/model)").
 		Alias("m").Default("qw3")
 	parser.Bool("oneshot", &conf.OneShot, "Use positional arguments as the prompt").
 		Alias("o")
