@@ -49,10 +49,15 @@ models:
     author: anthropic
     model: claude-opus-4
 
-  qwco:
+  qw3co:
     provider: openrouter
     author: qwen
-    model: qwen-2.5-coder-32b-instruct
+    model: qwen3-coder
+
+  qw3:
+    provider: openrouter
+    author: qwen
+    model: qwen3-235b-a22b-2507
 
   codestral:
     provider: openrouter
