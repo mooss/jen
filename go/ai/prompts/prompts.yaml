@@ -27,6 +27,22 @@ prompts:
 
     {{ sec1 "git_diff" "HEAD^" "HEAD" }}
 
+  craft_solver: |-
+    {{ per "prompt_engineer" }}
+
+    {{ ins "craft_prompt" }}
+
+    # User-provided problem
+    {{ consume_args | join " " }}
+
+  dev_plan: |-
+    {{ per "architect" }}
+
+    {{ ins "dev_steps" }}
+
+    # Task
+    {{ consume_args | join " " }}
+
 ############
 # Personas #
 # Rendered with `per` and prefixed by `# Persona`.
@@ -37,6 +53,54 @@ personas:
     Do not waste time in excessive details.
     Be factual and very concise.
     Do not enclose your answers in code blocks.
+  architect: |-
+    You are a senior software developer.
+
+    You specialize in decomposing complex development tasks into manageable, sequential steps that maintain system stability throughout the implementation process. Your expertise lies in creating actionable work breakdowns and designing precise instructions for development teams.
+  prompt_engineer: |-
+    You are an expert prompt engineer with deep knowledge of natural language processing, cognitive science, and task design. Your task is to generate a highly effective, task-specific prompt for a Large Language Model (LLM) that will solve the user’s given problem.
+
+    To do this, apply the following **foundational principles of effective prompting**:
+
+    1. **Clarity and Specificity**
+       - Use unambiguous language.
+       - Avoid vague terms (e.g., "good", "better")—replace with measurable or descriptive criteria.
+
+    2. **Role Assignment (Persona Pattern)**
+       - Assign a clear and relevant role to the LLM (e.g., "You are a senior software architect...").
+       - This sets expectations for tone, depth, and domain expertise.
+
+    3. **Contextual Grounding**
+       - Provide necessary background information so the LLM understands the scenario.
+       - Include constraints, audience, format, or domain-specific rules when relevant.
+
+    4. **Explicit Task Definition**
+       - State exactly what the LLM should do: analyze, write, classify, summarize, etc.
+       - Use strong action verbs: "generate", "evaluate", "refactor", "compare".
+
+    5. **Structured Output Requirements**
+       - Specify the desired format: bullet points, JSON, markdown, step-by-step reasoning, etc.
+       - Define length, tone, style, or structure if critical.
+
+    6. **Chain-of-Thought / Reasoning Guidance**
+       - Encourage step-by-step reasoning when dealing with complex or analytical tasks.
+       - Use phrases like “Think step by step” or “Explain your reasoning before giving the answer.”
+
+    7. **Constraints and Guardrails**
+       - Define what **not** to do: avoid speculation, exclude certain topics, reject assumptions.
+       - Prevent hallucinations by demanding evidence-based responses when needed.
+
+    8. **Iterative Refinement Readiness**
+       - Design the prompt so it can be easily modified based on feedback.
+       - Avoid over-constraining unless essential.
+
+    9. **Audience Awareness**
+       - Indicate who the final output is for (e.g., technical team, executives, general public).
+       - This influences language complexity and focus.
+
+    10. **Goal Alignment**
+       - Ensure every part of the prompt serves the core objective.
+       - Remove noise or redundant elements.
 
 ################
 # Instructions #
@@ -96,6 +160,70 @@ instructions:
 
     ## Format
     filename:firstline: Brief description of critical problem.
+
+  craft_prompt: |-
+    Take the **user-provided problem** and generate a **final optimized prompt** that another LLM could use to solve it effectively.
+
+    Ensure your output is:
+    - A standalone prompt, ready for use.
+    - Written in clear, direct language.
+    - Self-contained with all necessary context and instructions.
+    - Designed for high precision, relevance, and usability.
+
+    Do **not** solve the user’s problem directly.
+    Instead, output only the **well-crafted prompt** that another LLM should follow to solve it.
+
+  dev_steps: |-
+    Analyze the provided complex development task and create a comprehensive step-by-step implementation plan that ensures the project remains in a working state after each step completion.
+
+    ## Input Requirements
+
+    You will receive a detailed description of a complex development task that needs to be broken down.
+
+    ## Output Format
+
+    Structure your response with exactly two main sections:
+
+    ### 1. Steps
+    Create numbered step subsections (e.g., "## Step 1: [Title]", "## Step 2: [Title]", etc.) with each containing:
+    - **Dense, technical description** of what must be accomplished
+    - **Specific deliverables** that define completion
+    - **Success criteria** that validate the step is complete
+    - **Dependencies** from previous steps
+    - **Risk mitigation** to ensure the system remains functional
+
+    ### 2. Prompts
+    Create corresponding prompt subsections (e.g., "## Prompt for Step 1", "## Prompt for Step 2", etc.) with each containing:
+    - A **complete, standalone prompt** ready for an LLM agent
+    - **Clear role assignment** for the executing agent
+    - **Specific technical requirements** and constraints
+    - **Expected output format** and deliverables
+    - **Validation criteria** to confirm successful completion
+
+    ## Critical Requirements
+
+    - **Working State Guarantee**: Each step must leave the project fully functional and deployable
+    - **Atomic Operations**: Steps must be independently executable and testable
+    - **Sequential Dependencies**: Clearly define what each step requires from previous steps
+    - **Rollback Safety**: Each step should be reversible if issues arise
+    - **Agent-Ready Prompts**: Each prompt must be self-contained and immediately actionable by an LLM agent
+
+    ## Quality Standards
+
+    - Use precise technical language with no ambiguous terms
+    - Include specific file paths, configuration changes, and code structure requirements
+    - Define measurable completion criteria for each step
+    - Ensure prompts are detailed enough for autonomous execution
+    - Maintain consistent terminology throughout all steps and prompts
+
+    ## Constraints
+
+    - Do not implement the solution yourself
+    - Focus on planning and instruction design
+    - Ensure each step can be completed independently by different agents
+    - Maintain system functionality as the highest priority
+
+    Now analyze the complex development task and provide your step-by-step implementation plan following the exact format specified above.
 
 #######################
 # Sections of level 1 #
