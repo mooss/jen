@@ -215,20 +215,20 @@ func tee(teefile string, session config.SessionMetadata, prompt config.Prompt) e
 }
 
 func modelSpec(cfg *config.Jenai) (models.Spec, error) {
+	fromZoo := func() (models.Spec, error) { return models.Get(cfg.Model) }
+
 	// Model specified directly in aichat's provider:author/model formet.
-	if parts := strings.Split(cfg.Model, ":"); len(parts) == 2 {
-		authorModel := strings.Split(parts[1], "/")
-		if len(authorModel) == 2 {
-			return models.Spec{
-				Provider: parts[0],
-				Author:   authorModel[0],
-				Model:    authorModel[1],
-			}, nil
-		}
+	provider, rest, found := strings.Cut(cfg.Model, ":")
+	if !found {
+		return fromZoo()
 	}
 
-	// Short name lookup.
-	return models.Get(cfg.Model)
+	author, model, found := strings.Cut(rest, "/")
+	if !found {
+		return fromZoo()
+	}
+
+	return models.Spec{Provider: provider, Author: author, Model: model}, nil
 }
 
 ////////////////
