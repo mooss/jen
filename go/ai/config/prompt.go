@@ -9,6 +9,9 @@ type Prompt struct {
 	// ContextAbove is true when the context files should be included at the top of the prompt.
 	ContextAbove bool
 
+	// Clipboard is the content read from the clipboard.
+	Clipboard string
+
 	// Paths is the names of the included paths.
 	Paths []string
 
@@ -17,10 +20,14 @@ type Prompt struct {
 
 	// Primary is the compiled named prompt or the content of the clipboard.
 	Primary string
+
+	// Stdin is the content from the standard input.
+	Stdin string
 }
 
+// Empty returns true when the prompt is empty (the context does not count here).
 func (p Prompt) Empty() bool {
-	return p.Context == "" && p.Positional == "" && p.Primary == ""
+	return p.Clipboard == "" && p.Positional == "" && p.Primary == "" && p.Stdin == ""
 }
 
 // String returns the full content of the prompt.
@@ -36,6 +43,14 @@ func (p Prompt) static() []string {
 
 	if len(p.Primary) > 0 {
 		buf = append(buf, p.Primary)
+	}
+
+	if len(p.Clipboard) > 0 {
+		buf = append(buf, p.Clipboard)
+	}
+
+	if len(p.Stdin) > 0 {
+		buf = append(buf, p.Stdin)
 	}
 
 	return buf

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -152,7 +153,6 @@ func conf() (*config.Jenai, *flag.Parser) {
 }
 
 func run(cfg *config.Jenai, lib prompts.Library) {
-	noerr0(cfg.Validate())
 	prompt := noerr(cfg.BuildPrompt(lib))
 
 	if cfg.DryRun {
@@ -171,6 +171,10 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		noerr0(cmd.Run())
+	}
+
+	if prompt.Empty() && !session.Requested {
+		fatal(errors.New("the prompt is empty"))
 	}
 
 	if !prompt.Empty() {

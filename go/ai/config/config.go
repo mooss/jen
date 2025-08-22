@@ -2,8 +2,9 @@
 package config
 
 import (
-	"errors"
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -22,12 +23,8 @@ type Jenai struct {
 	OneShot     bool
 	Paste       bool
 	Positional  []string
-	PromptName  string
 	session     SessionMetadata
 	TeeFile     string
-
-	// Implementation details.
-	rawPositional []string
 }
 
 /////////////////////////////////
@@ -67,60 +64,58 @@ func (conf *Jenai) ParseCLI(parser *flag.Parser, args []string) error {
 	}
 
 	conf.Positional = parser.Positional
-	conf.rawPositional = parser.Positional
-
-	// Load prompt name.
-	if conf.PromptMode() && len(conf.Positional) > 0 {
-		conf.PromptName = conf.Positional[0]
-		conf.Positional = conf.Positional[1:]
-	}
-
 	return nil
 }
 
-// Validate returns an error when the configuration is incoherent.
-func (conf *Jenai) Validate() error {
-	// Validate that positional arguments are provided when needed.
-	if !conf.Paste && len(conf.rawPositional) == 0 && conf.session.Name == "" {
-		return errors.New("No positional arguments provided")
-	}
-
-	return nil
-}
-
-// BuildPrompt returns the complete prompt, taking all sources into account (prompt, clipboard and
-// positional argument).
+// BuildPrompt returns the complete prompt, taking all sources into account (prompt, clipboard,
+// positional argument, and stdin).
 // Prompt and clipboard are mutually exclusive.
 // The prompt is evaluated.
 func (conf *Jenai) BuildPrompt(lib prompts.Library) (Prompt, error) {
-	// Select primary source.
-	get := func() (string, error) {
-		return prompts.NewEvalContext(lib, &conf.Positional).Evaluate(conf.PromptName)
+	var (
+		clipboard  string
+		context    string
+		paths      []string
+		err        error
+		positional []string
+		primary    string
+		stdin      string
+	)
+
+	positional = conf.Positional
+	if !conf.OneShot && len(conf.Positional) > 0 {
+		positional = conf.Positional[1:]
+		primary, err = prompts.NewEvalContext(lib, &positional).Evaluate(conf.Positional[0])
+		if err != nil {
+			return Prompt{}, err
+		}
 	}
 
-	switch {
-	case conf.Paste:
-		get = readClipboard
-	case conf.OneShot:
-		get = func() (string, error) { return "", nil }
+	if conf.Paste {
+		clipboard, err = readClipboard()
+		if err != nil {
+			return Prompt{}, err
+		}
 	}
 
-	primary, err := get()
+	context, paths, err = conf.Context.Build()
 	if err != nil {
 		return Prompt{}, err
 	}
 
-	context, paths, err := conf.Context.Build()
+	stdin, err = readStdin()
 	if err != nil {
 		return Prompt{}, err
 	}
 
 	res := Prompt{
+		Clipboard:    clipboard,
 		Context:      context,
 		ContextAbove: conf.Context.Above,
 		Paths:        paths,
-		Positional:   strings.Join(conf.Positional, " "),
+		Positional:   strings.Join(positional, " "),
 		Primary:      primary,
+		Stdin:        stdin,
 	}
 
 	return res, nil
@@ -140,15 +135,6 @@ func (conf *Jenai) Session() (SessionMetadata, error) {
 	return conf.session, nil
 }
 
-/////////////////////
-// Utility methods //
-
-// PromptMode returns true when the configuration is in prompt mode (i.e. not in the special paste
-// or oneshot mode).
-func (conf *Jenai) PromptMode() bool {
-	return !conf.OneShot && !conf.Paste
-}
-
 ///////////////////////
 // Utility functions //
 
@@ -161,4 +147,18 @@ func readClipboard() (string, error) {
 	}
 
 	return string(output), nil
+}
+
+// readStdin returns the content of stdin, if something was piped in.
+func readStdin() (string, error) {
+	stat, _ := os.Stdin.Stat()
+	if (stat.Mode() & os.ModeCharDevice) != 0 {
+		return "", nil // No data being piped.
+	}
+
+	data, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		return "", fmt.Errorf("failed to read from stdin: %w", err)
+	}
+	return string(data), nil
 }
