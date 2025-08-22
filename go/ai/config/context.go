@@ -31,6 +31,10 @@ func (c *Context) Empty() bool { return len(c.Files) == 0 && len(c.Dirs) == 0 }
 // Empty should be checked before calling this because the "additional context" header is always
 // present,
 func (c *Context) Build() (string, []string, error) {
+	if c.Empty() {
+		return "", nil, nil
+	}
+
 	var buf bytes.Buffer
 	paths := []string{}
 	buf.WriteString("# Additional context (files)")
