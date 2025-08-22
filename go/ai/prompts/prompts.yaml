@@ -182,29 +182,28 @@ instructions:
 
     ## Output Format
 
+    Use one line per sentence.
     Structure your response with exactly two main sections:
 
     ### 1. Steps
-    Create numbered step subsections (e.g., "## Step 1: [Title]", "## Step 2: [Title]", etc.) with each containing:
-    - **Dense, technical description** of what must be accomplished
-    - **Specific deliverables** that define completion
-    - **Success criteria** that validate the step is complete
-    - **Dependencies** from previous steps
-    - **Risk mitigation** to ensure the system remains functional
+    Create numbered step subsections (e.g., "## Step 1: [Title]", "## Step 2: [Title]", etc.) with each containing a **dense, technical description** of what must be accomplished.
+
+    Do not use subsections below the steps.
 
     ### 2. Prompts
     Create corresponding prompt subsections (e.g., "## Prompt for Step 1", "## Prompt for Step 2", etc.) with each containing:
     - A **complete, standalone prompt** ready for an LLM agent
-    - **Clear role assignment** for the executing agent
     - **Specific technical requirements** and constraints
     - **Expected output format** and deliverables
     - **Validation criteria** to confirm successful completion
+
+    Do not include a role in the prompt, no "you are a ...".
+    After the prompt, include the list of required files, that is to say files containing information required to properly implement the step.
 
     ## Critical Requirements
 
     - **Working State Guarantee**: Each step must leave the project fully functional and deployable
     - **Atomic Operations**: Steps must be independently executable and testable
-    - **Sequential Dependencies**: Clearly define what each step requires from previous steps
     - **Rollback Safety**: Each step should be reversible if issues arise
     - **Agent-Ready Prompts**: Each prompt must be self-contained and immediately actionable by an LLM agent
 
@@ -218,7 +217,7 @@ instructions:
 
     ## Constraints
 
-    - Do not implement the solution yourself
+    - Do not implement the solution yourself, do not include any code
     - Focus on planning and instruction design
     - Ensure each step can be completed independently by different agents
     - Maintain system functionality as the highest priority
