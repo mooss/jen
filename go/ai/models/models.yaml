@@ -1,53 +1,23 @@
 models:
-  gpt-4.1:
-    provider: openrouter
-    author: openai
-    model: gpt-4.1
-
-  gpt-4.1-mini:
-    provider: openrouter
-    author: openai
-    model: gpt-4.1-mini
-
-  gpt-4.1-nano:
-    provider: openrouter
-    author: openai
-    model: gpt-4.1-nano
-
-  gemma3:
-    provider: openrouter
-    author: google
-    model: gemma-3-27b-it:nitro
-
   gemini-pro:
     provider: openrouter
     author: google
-    model: gemini-2.5-pro-preview:nitro
-
-  r1:
-    provider: openrouter
-    author: deepseek
-    model: deepseek-r1-0528:nitro
+    model: gemini-2.5-pro
 
   ds-v3:
     provider: openrouter
     author: deepseek
-    model: deepseek-chat:nitro
+    model: deepseek-chat-v3-0324
 
   haiku:
     provider: openrouter
     author: anthropic
-    model: claude-3.5-haiku
+    model: claude-haiku-4.5
 
   sonnet:
     provider: openrouter
     author: anthropic
-    model: claude-sonnet-4
-
-  opus:
-    provider: openrouter
-    author: anthropic
-    model: claude-opus-4
+    model: claude-sonnet-4.5
 
   qw3co:
     provider: openrouter
@@ -59,12 +29,17 @@ models:
     author: qwen
     model: qwen3-235b-a22b-2507
 
-  codestral:
-    provider: openrouter
-    author: mistralai
-    model: codestral-2501
-
   kimi-k2:
     provider: openrouter
     author: moonshotai
-    model: kimi-k2:nitro
+    model: kimi-k2-0905
+
+  glm:
+    provider: openrouter
+    author: z-ai
+    model: glm-4.6
+
+  oss-120:
+    provider: openrouter
+    author: openai
+    model: gpt-oss-120b
