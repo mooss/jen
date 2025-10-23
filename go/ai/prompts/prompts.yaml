@@ -10,17 +10,20 @@ prompts:
     {{ ins "commit_msg" }}
 
     {{ sec1 "git_diff" "--staged" }}
+
   project_graph: |-
     {{ ins "idea_graph" }}
 
     {{ consume_args | join " " }}
-  staged_check: |-
+
+  review_staged: |-
     {{ per "jaded_dev" }}
 
     {{ ins "analyse_code" }}
 
     {{ sec1 "git_diff" "--staged" }}
-  previous_commit_check: |-
+
+  review_previous_commit: |-
     {{ per "jaded_dev" }}
 
     {{ ins "analyse_code" }}
@@ -51,7 +54,7 @@ personas:
   jaded_dev: |-
     Act as an experienced developer.
     Do not waste time in excessive details.
-    Be factual and very concise.
+    Be factual and concise.
     Do not enclose your answers in code blocks.
   architect: |-
     You are a senior software developer.
@@ -148,18 +151,40 @@ instructions:
     Remember, only one question at a time.
 
     # Idea
+
   analyse_code: |-
-    Review this code and print ONLY major bugs that will break functionality:
-    - Logic errors
+    Review the provided code and focus ONLY on:
+    - Critical bugs or logic errors
     - Security vulnerabilities
-    - Runtime crashes
-    - Data corruption risks
-    - Memory leaks
+    - Performance issues
+    - Maintainability problems
+    - Violations of important architectural patterns
+    - Missing error handling where essential
 
-    Skip style issues, minor inefficiencies, or nitpicks. If the code works correctly despite being ugly, just say "No major issues found."
+    EXCLUDE:
+    - Style preferences (indentation, spacing, naming conventions unless unclear)
+    - Obvious optimizations with negligible impact
+    - Personal opinions about approaches
+    - Generic comments like "consider adding comments"
 
-    ## Format
-    filename:firstline: Brief description of critical problem.
+    Format your review as:
+    ```
+    ## Critical Issues
+    [None if none found]
+
+    ## Important Suggestions
+    [None if none found]
+
+    ## Minor Improvements
+    [None if none found]
+    ```
+
+    For each point, provide:
+    1. File location (line numbers if applicable)
+    2. Brief description of the issue
+    3. Specific fix recommendation
+
+    Be direct and technical. Assume the reader is an experienced developer. If the code is solid with no meaningful issues, state so clearly.
 
   craft_prompt: |-
     Take the **user-provided problem** and generate a **final optimized prompt** that another LLM could use to solve it effectively.
