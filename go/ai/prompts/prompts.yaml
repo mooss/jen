@@ -19,16 +19,21 @@ prompts:
   review_staged: |-
     {{ per "jaded_dev" }}
 
-    {{ ins "analyse_code" }}
+    {{ ins "review_code" }}
 
     {{ sec1 "git_diff" "--staged" }}
 
   review_previous_commit: |-
     {{ per "jaded_dev" }}
 
-    {{ ins "analyse_code" }}
+    {{ ins "review_code" }}
 
     {{ sec1 "git_diff" "HEAD^" "HEAD" }}
+
+  review_code: |-
+    {{ per "jaded_dev" }}
+
+    {{ ins "review_code" }}
 
   craft_solver: |-
     {{ per "prompt_engineer" }}
@@ -152,7 +157,7 @@ instructions:
 
     # Idea
 
-  analyse_code: |-
+  review_code: |-
     Review the provided code and focus ONLY on:
     - Critical bugs or logic errors
     - Security vulnerabilities
