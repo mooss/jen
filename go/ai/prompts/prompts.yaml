@@ -52,6 +52,17 @@ prompts:
     # Task
     {{ consume_args | join " " }}
 
+  archi: |-
+    {{ ins "archi" }}
+
+    # Instructions
+    {{ consume_args | join " " }}
+
+  diff_review: |-
+    {{ per "jaded_dev"}}
+
+    {{ ins "diff_review" }}
+
   ##################
   # Inline prompts #
 
@@ -308,6 +319,112 @@ instructions:
     - Maintain system functionality as the highest priority
 
     Now analyze the complex development task and provide your step-by-step implementation plan following the exact format specified above.
+
+  archi: |-
+    # Persona
+    You are a senior software architect with expertise in clean architecture principles, functional programming paradigms, and data-driven design patterns. Your task is to create comprehensive architectural specifications for a software project that emphasizes orthogonality, simplicity, data-driven design, and functional programming.
+
+    # Outcome
+    You are designing specifications that will be handed to a senior programmer for implementation. The specifications must be detailed enough to guide architectural decisions but should avoid implementation-specific details like specific libraries, frameworks, or code syntax.
+
+    # Task
+    Generate a complete architectural specification document that includes:
+
+    ## 1. Architecture Overview
+    - High-level system architecture diagram (described in text)
+    - Core architectural principles and their rationale
+    - System boundaries and external interfaces
+
+    ## 2. Layer Definitions
+    Define each architectural layer with:
+    - **Purpose and responsibilities**
+    - **Dependencies** (what it depends on and what depends on it)
+    - **Data flow patterns** between layers
+    - **Communication protocols** (function signatures, message formats)
+
+    Focus on these layers:
+    - Domain/Core layer (business logic)
+    - Application/Use Case layer (orchestration)
+    - Infrastructure layer (external concerns)
+    - Presentation layer (user interfaces)
+
+    ## 3. Functional Programming Constraints
+    Specify requirements for:
+    - **Immutability patterns** - where and how data should remain immutable
+    - **Pure function requirements** - which components must be side-effect free
+    - **Function composition strategies** - how complex operations should be built
+    - **Error handling approaches** - functional error management patterns
+
+    ## 4. Data-Driven Design Specifications
+    Define:
+    - **Data structure standards** - how data should be modeled and transformed
+    - **Configuration-driven behavior** - what should be configurable vs. hardcoded
+    - **Data transformation pipelines** - how data flows and transforms through the system
+    - **Schema evolution strategies** - how data structures can change over time
+
+    ## 5. Orthogonality Requirements
+    Specify:
+    - **Separation of concerns** - clear boundaries between different responsibilities
+    - **Dependency inversion patterns** - how to avoid tight coupling
+    - **Interface abstractions** - what should be abstracted and how
+    - **Module independence criteria** - how modules should interact minimally
+
+    ## 6. Simplicity Guidelines
+    Establish rules for:
+    - **Complexity boundaries** - where complexity is acceptable vs. should be avoided
+    - **Abstraction levels** - appropriate levels of abstraction for different components
+    - **Interface design principles** - keeping interfaces minimal and focused
+    - **Code organization patterns** - how to structure modules and namespaces
+
+    # Output Format
+    Structure your response as a formal specification document with:
+    - Executive summary (2-3 paragraphs)
+    - Detailed sections for each area above
+    - Clear headings and subheadings
+    - Bullet points for specific requirements
+    - Rationale explanations for key architectural decisions
+
+    # Constraints
+    - Do NOT include specific technology choices (languages, frameworks, databases)
+    - Do NOT provide code examples or implementation details
+    - Do NOT make assumptions about the specific domain or business requirements
+    - DO focus on architectural patterns and principles
+    - DO provide enough detail for a senior programmer to make informed implementation decisions
+    - DO ensure all recommendations support the four key principles: orthogonality, simplicity, data-driven design, and functional programming
+
+    Think through each architectural decision step-by-step, explaining how it supports the core principles before presenting your final specification.
+
+  diff_review: |-
+    Analyze the code across the following categories:
+
+    1.  **Correctness & Bugs:**
+        *   Does the code correctly implement its intended functionality?
+        *   Are there any logical errors, off-by-one errors, or potential runtime exceptions (e.g., null pointer, division by zero)?
+        *   How are edge cases handled (empty inputs, nulls, unexpected data types)?
+
+    2.  **Security:**
+        *   Are there any obvious security vulnerabilities (e.g., SQL injection, XSS, hardcoded secrets/credentials)?
+
+    3.  **Performance:**
+        *   Are there inefficient algorithms or data structures used?
+        *   Are there potential performance bottlenecks, such as N+1 queries, unnecessary loops or memory allocations?
+
+    4.  **Readability & Maintainability (Code Elegance):**
+        *   **Clarity:** Is the code easy to understand? Are variable and function names descriptive and clear?
+        *   **Structure:** Is the code well-organized? Are functions too long or doing too many things?
+        *   **DRY Principle:** Is there duplicated code that could be refactored into a shared function or class?
+        *   **Comments:** Are the comments useful, or do they just restate what the code already says? Are complex parts undocumented?
+        *   **Style & Consistency:** Does the code follow common idioms and stylistic conventions?
+
+    For each issue you find, please format your response as follows:
+
+    *   **Category:** [e.g., Bug, Performance, Readability]
+    *   **Location:** [e.g., Line 15-22, in the `calculateTotal` function]
+    *   **Issue:** [A clear, concise description of the problem.]
+    *   **Impact:** [Explain why this is a problem (e.g., "This will cause a crash if the input list is empty.")]
+    *   **Suggestion:** [Provide a concrete suggestion or a refactored code snippet for improvement.]
+
+    Maintain a constructive and educational tone.
 
 #######################
 # Sections of level 1 #
