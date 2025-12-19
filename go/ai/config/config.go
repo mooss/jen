@@ -46,7 +46,7 @@ func (conf *Jenai) RegisterCLI() *flag.Parser {
 		Alias("lm")
 	parser.Bool("linum", &conf.Context.LineNumbers, "Print files with line numbers")
 	parser.String("model", &conf.Model, "Model name (short name from --lm or provider:author/model)").
-		Alias("m").Default("qw3")
+		Alias("m").Default("ds3.2")
 	parser.Bool("oneshot", &conf.OneShot, "Use positional arguments as the prompt").
 		Alias("o")
 	parser.Bool("paste", &conf.Paste, "Use clipboard content as prompt")

@@ -9,6 +9,16 @@ models:
     author: deepseek
     model: deepseek-chat-v3-0324
 
+  ds3.2:
+    provider: openrouter
+    author: deepseek
+    model: deepseek-v3.2
+
+  ds3.2-spe:
+    provider: openrouter
+    author: deepseek
+    model: deepseek-v3.2-speciale
+
   haiku:
     provider: openrouter
     author: anthropic
@@ -23,11 +33,6 @@ models:
     provider: openrouter
     author: qwen
     model: qwen3-coder
-
-  qw3:
-    provider: openrouter
-    author: qwen
-    model: qwen3-235b-a22b-2507
 
   kimi-k2:
     provider: openrouter
