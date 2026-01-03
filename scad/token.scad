@@ -32,12 +32,13 @@ CORE_PADDING = 1;
 // Token frame //
 
 // Width of the frame's border (the part against which the paper is pressed by the core).
-// paper is pressed).
 FRAME_BORDER = .75;
 
-// Radius of the inner circles (the circles that extend inwards from each corner at the top of the
-// frame).
+// Radius of the inner circles (the circles that extend inwards from each corner at the top of the frame).
 INNER_CIRCLE_RADIUS = 4; // TODO: think about removing this.
+
+// Additional height for the solid token, to make it fit snugly into the frame.
+TOKEN_HEIGHT_ADJUSTMENT = .1;
 
 /////////////////////
 // Grid parameters //
@@ -152,6 +153,11 @@ module assembled_frame() {
 	}
 }
 
+module token_block(height) {
+    linear_extrude(height=height)
+    flat_token();
+}
+
 //////////
 // Grid //
 //////////
@@ -217,11 +223,16 @@ module assembled_grid() {
 // Shape assembly //
 ////////////////////
 
-scale(CORE_FIT_RATIO)
-core();
+// scale(CORE_FIT_RATIO)
+// core();
 
-translate([1.2*TOKEN.x, 0, 0])
-assembled_frame();
+// translate([1.2*TOKEN.x, 0, 0])
+// assembled_frame();
+
+translate([1.2*TOKEN.x * 2, 0, 0])
+token_block(TOKEN_HEIGHT + TOKEN_HEIGHT_ADJUSTMENT);
 
 translate([0, TOKEN.y, 0])
 assembled_grid();
+
+// GRID = [1, 1];

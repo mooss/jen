@@ -9,7 +9,7 @@ SIZE = 30;
 TUBE_DEPTH = 8;
 
 // Witdh of the tube.
-TUBE_WIDTH = 9.7;
+TUBE_WIDTH = 10.2;
 
 // How much should the base cube be truncated.
 TRUNCATION_RATIO = .75;
@@ -118,11 +118,11 @@ module support() {
 
 CORNER_LEN = 100;
 CORNER_HEIGHT = 15;
-EXT_VOID = 60;
-CORNER_EXTENSION = [25, 40];
+EXT_VOID = 80;
+CORNER_EXTENSION = [16.5, 40];
 CORNER_TUBE_SHIFT = 5;
 CORNER_SMOOTHING = 2;
-TRANSVERSE_TUBE_SHIFT = 3;
+TRANSVERSE_TUBE_SHIFT = 1;
 
 module half_sphere(r) {
 	intersection() {
@@ -220,14 +220,15 @@ module foot() {
 // Shape assembly //
 ////////////////////
 
-cornerstone();
-support();
+// cornerstone();
+// support();
 
 translate([0, -CORNER_LEN - 50,  0])
 bl_corner_beam();
-
+/*
 translate([200, 0, 0])
 bl_double_corner_beam();
 
 translate([0, 100, 0])
 foot();
+*/
