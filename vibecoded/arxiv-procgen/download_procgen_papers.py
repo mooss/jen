@@ -8,6 +8,7 @@ Search for and download all arXiv papers related to procedural generation.
 import os
 import sys
 import time
+import json
 import requests
 import feedparser
 from pathlib import Path
@@ -112,6 +113,11 @@ def download_paper(paper: Dict, download_dir: Path) -> bool:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
 
+        # Save individual paper metadata
+        metadata_file = download_dir / f"{arxiv_id}.json"
+        with open(metadata_file, 'w', encoding='utf-8') as f:
+            json.dump(paper, f, indent=2, ensure_ascii=False)
+
         return True
 
     except requests.RequestException as e:
@@ -120,6 +126,14 @@ def download_paper(paper: Dict, download_dir: Path) -> bool:
 
 def get_all_papers() -> List[Dict]:
     """Get all procedural generation papers from arXiv."""
+    cache_file = Path("search_results.json")
+
+    # If cache exists, load from file
+    if cache_file.exists():
+        print("Loading cached search results...")
+        with open(cache_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
     all_papers = []
     seen_ids = set()
 
@@ -135,6 +149,10 @@ def get_all_papers() -> List[Dict]:
 
         # Rate limiting
         time.sleep(RATE_LIMIT_DELAY)
+
+    # Save search results to cache
+    with open(cache_file, 'w', encoding='utf-8') as f:
+        json.dump(all_papers, f, indent=2, ensure_ascii=False)
 
     return all_papers
 
@@ -154,7 +172,7 @@ def download_all_papers(papers: List[Dict], download_dir: Path) -> None:
 
     print(f"\nDownload complete: {successful} successful, {failed} failed")
 
-def save_paper_metadata(papers: List[Dict], download_dir: Path) -> None:
+def save_global_metadata(papers: List[Dict], download_dir: Path) -> None:
     """Save paper metadata as JSON for reference."""
     import json
     
@@ -241,7 +259,7 @@ def main():
         print(f"Limited to {len(papers)} papers")
 
     # Save metadata
-    save_paper_metadata(papers, download_dir)
+    save_global_metadata(papers, download_dir)
 
     # Create summary report
     create_summary_report(papers, download_dir)
