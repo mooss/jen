@@ -1,33 +1,8 @@
 models:
-  gemini-pro:
-    provider: openrouter
-    author: google
-    model: gemini-2.5-pro
-
-  ds-v3:
-    provider: openrouter
-    author: deepseek
-    model: deepseek-chat-v3-0324
-
   ds3.2:
     provider: openrouter
     author: deepseek
     model: deepseek-v3.2
-
-  ds3.2-spe:
-    provider: openrouter
-    author: deepseek
-    model: deepseek-v3.2-speciale
-
-  haiku:
-    provider: openrouter
-    author: anthropic
-    model: claude-haiku-4.5
-
-  sonnet:
-    provider: openrouter
-    author: anthropic
-    model: claude-sonnet-4.5
 
   qw3co:
     provider: openrouter
@@ -48,3 +23,8 @@ models:
     provider: openrouter
     author: openai
     model: gpt-oss-120b
+
+  minimax21:
+    provider: openrouter
+    author: minimax
+    model: minimax-m2.1
