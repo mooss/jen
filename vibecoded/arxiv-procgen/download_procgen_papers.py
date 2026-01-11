@@ -90,9 +90,8 @@ def search_arxiv_papers(query: str, max_results: int = MAX_RESULTS_PER_QUERY) ->
         return []
 
 def download_paper(paper: Dict, download_dir: Path) -> bool:
-    """Download a single paper PDF."""
+    """Download a single paper PDF from alternative sources."""
     arxiv_id = paper['id']
-    pdf_url = paper['pdf_url']
 
     # Create filename from arXiv ID
     filename = f"{arxiv_id}.pdf"
@@ -101,28 +100,75 @@ def download_paper(paper: Dict, download_dir: Path) -> bool:
     if filepath.exists():
         return True # Already downloaded
 
-    # Make sure to sleep everytime a download is attempted
+    # List of alternative sources to try
+    alternative_urls = [
+        # Primary arXiv URL (original)
+        f"https://arxiv.org/pdf/{arxiv_id}.pdf",
+        # arXiv mirror sites
+        f"https://export.arxiv.org/pdf/{arxiv_id}.pdf",
+        f"https://arxiv-sanity.com/pdf/{arxiv_id}.pdf",
+        # Alternative academic repositories
+        f"https://www.arxiv-vanity.com/papers/{arxiv_id}/",
+        # Semantic Scholar PDF (if available)
+        f"https://api.semanticscholar.org/v1/paper/arXiv:{arxiv_id}",
+    ]
+
+    # Make sure to sleep every time a download is attempted
     time.sleep(RATE_LIMIT_DELAY)
 
-    try:
-        response = requests.get(pdf_url, stream=True)
-        response.raise_for_status()
+    # Try each alternative source
+    for url in alternative_urls:
+        try:
+            if "semanticscholar" in url:
+                # Semantic Scholar needs special handling
+                response = requests.get(url, timeout=30)
+                response.raise_for_status()
+                data = response.json()
+                if 'pdfUrl' in data and data['pdfUrl']:
+                    response = requests.get(data['pdfUrl'], stream=True, timeout=30)
+                else:
+                    continue
+            elif "arxiv-vanity" in url:
+                # arXiv Vanity provides HTML, we need to extract PDF link
+                response = requests.get(url, timeout=30)
+                response.raise_for_status()
+                # Try to find PDF link in the page (this is a fallback)
+                import re
+                pdf_match = re.search(r'href="([^"]*\.pdf)"', response.text)
+                if pdf_match:
+                    response = requests.get(pdf_match.group(1), stream=True, timeout=30)
+                else:
+                    continue
+            else:
+                # Direct PDF download
+                response = requests.get(url, stream=True, timeout=30)
 
-        # Save the PDF
-        with open(filepath, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
+            response.raise_for_status()
 
-        # Save individual paper metadata
-        metadata_file = download_dir / f"{arxiv_id}.json"
-        with open(metadata_file, 'w', encoding='utf-8') as f:
-            json.dump(paper, f, indent=2, ensure_ascii=False)
+            # Verify we got a PDF (not HTML error page)
+            content_type = response.headers.get('content-type', '').lower()
+            if 'pdf' not in content_type and len(response.content) < 1000:
+                continue
 
-        return True
+            # Save the PDF
+            with open(filepath, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
 
-    except requests.RequestException as e:
-        print(f"Error downloading {arxiv_id}: {e}")
-        return False
+            # Save individual paper metadata
+            metadata_file = download_dir / f"{arxiv_id}.json"
+            with open(metadata_file, 'w', encoding='utf-8') as f:
+                json.dump(paper, f, indent=2, ensure_ascii=False)
+
+            print(f"Successfully downloaded {arxiv_id} from {url}")
+            return True
+
+        except (requests.RequestException, json.JSONDecodeError, KeyError) as e:
+            print(f"Failed to download {arxiv_id} from {url}: {e}")
+            continue
+
+    print(f"Failed to download {arxiv_id} from all sources")
+    return False
 
 def get_all_papers() -> List[Dict]:
     """Get all procedural generation papers from arXiv."""
@@ -157,11 +203,12 @@ def get_all_papers() -> List[Dict]:
     return all_papers
 
 def download_all_papers(papers: List[Dict], download_dir: Path) -> None:
-    """Download all papers with progress tracking."""
+    """Download all papers with progress tracking and retry logic."""
     print(f"\nDownloading {len(papers)} papers...")
 
     successful = 0
     failed = 0
+    failed_papers = []
 
     for paper in tqdm(papers, desc="Downloading"):
         success = download_paper(paper, download_dir)
@@ -169,15 +216,33 @@ def download_all_papers(papers: List[Dict], download_dir: Path) -> None:
             successful += 1
         else:
             failed += 1
+            failed_papers.append(paper)
+
+    # Retry failed papers once with longer delay
+    if failed_papers:
+        print(f"\nRetrying {len(failed_papers)} failed downloads with longer delay...")
+        time.sleep(RATE_LIMIT_DELAY * 2)  # Longer delay before retry
+
+        for paper in tqdm(failed_papers, desc="Retrying failed downloads"):
+            time.sleep(RATE_LIMIT_DELAY * 2)  # Even longer delay between retries
+            success = download_paper(paper, download_dir)
+            if success:
+                successful += 1
+                failed -= 1
 
     print(f"\nDownload complete: {successful} successful, {failed} failed")
+    if failed > 0:
+        print(f"Failed papers saved to failed_downloads.json")
+        failed_file = download_dir / "failed_downloads.json"
+        with open(failed_file, 'w', encoding='utf-8') as f:
+            json.dump(failed_papers, f, indent=2, ensure_ascii=False)
 
 def save_global_metadata(papers: List[Dict], download_dir: Path) -> None:
     """Save paper metadata as JSON for reference."""
     import json
-    
+
     metadata_file = download_dir / "papers_metadata.json"
-    
+
     # Convert papers to JSON-serializable format
     json_papers = []
     for paper in papers:
@@ -185,10 +250,10 @@ def save_global_metadata(papers: List[Dict], download_dir: Path) -> None:
         json_paper['authors'] = ', '.join(paper['authors'])
         json_paper['categories'] = ', '.join(paper['categories'])
         json_papers.append(json_paper)
-    
+
     with open(metadata_file, 'w', encoding='utf-8') as f:
         json.dump(json_papers, f, indent=2, ensure_ascii=False)
-    
+
     print(f"Saved metadata for {len(papers)} papers to {metadata_file}")
 
 def create_summary_report(papers: List[Dict], download_dir: Path) -> None:
