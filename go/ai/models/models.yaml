@@ -1,30 +1,25 @@
 models:
-  ds3.2:
-    provider: openrouter
-    author: deepseek
-    model: deepseek-v3.2
-
-  qw3co:
-    provider: openrouter
-    author: qwen
-    model: qwen3-coder
-
-  kimi-k2:
-    provider: openrouter
-    author: moonshotai
-    model: kimi-k2-0905
-
-  glm:
+  glm-flash:
     provider: openrouter
     author: z-ai
-    model: glm-4.6
+    model: z-ai/glm-5.3-flash
 
-  oss-120:
+  ds4-flash:
     provider: openrouter
-    author: openai
-    model: gpt-oss-120b
+    author: deepseek
+    model: deepseek-v4-flash-0731
 
-  minimax21:
+  ds4-pro:
+    provider: openrouter
+    author: deepseek
+    model: deepseek-v4-pro-0813
+
+  minimax3:
     provider: openrouter
     author: minimax
-    model: minimax-m2.1
+    model: minimax-m3
+
+  kimi-k3:
+    provider: openrouter
+    author: moonshotai
+    model: kimi-k3
