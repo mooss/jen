@@ -9,6 +9,11 @@ models:
     author: deepseek
     model: deepseek-v4-flash-0731
 
+  ds41-flash:
+    provider: openrouter
+    author: deepseek
+    model: deepseek-v4.1-flash
+
   ds4-pro:
     provider: openrouter
     author: deepseek
