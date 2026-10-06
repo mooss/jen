@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +13,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mooss/bagend/go/flag"
@@ -168,8 +171,31 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 		cmd.Env = append(cmd.Env, "AICHAT_COMPRESS_THRESHOLD=10000",
 			"AICHAT_SESSIONS_DIR="+session.Dir)
 		cmd.Stdin = stdin
-		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+
+		if cfg.Thoughtless {
+			r, w, err := os.Pipe()
+			if err != nil {
+				fatal(err)
+			}
+			cmd.Stdout = w
+
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				_ = filterThink(os.Stdout, r)
+				_ = r.Close()
+			}()
+
+			runErr := cmd.Run()
+			_ = w.Close()
+			wg.Wait()
+			noerr0(runErr)
+			return
+		}
+
+		cmd.Stdout = os.Stdout
 		noerr0(cmd.Run())
 	}
 
@@ -179,10 +205,18 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 
 	if !prompt.Empty() {
 		aichat(strings.NewReader(prompt.String()))
+
 		if cfg.TeeFile != "" {
-			if err := tee(cfg.TeeFile, session, prompt); err != nil {
+			if err := tee(cfg.TeeFile, session, prompt, false); err != nil {
 				fmt.Fprintf(os.Stderr,
 					"can't tee to %s (will proceed nonetheless): %s", cfg.TeeFile, err)
+			}
+		}
+
+		if cfg.ThoughtlessTeeFile != "" {
+			if err := tee(cfg.ThoughtlessTeeFile, session, prompt, true); err != nil {
+				fmt.Fprintf(os.Stderr,
+					"can't tee to %s (will proceed nonetheless): %s", cfg.ThoughtlessTeeFile, err)
 			}
 		}
 	}
@@ -193,7 +227,7 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 	}
 }
 
-func tee(teefile string, session config.SessionMetadata, prompt config.Prompt) error {
+func tee(teefile string, session config.SessionMetadata, prompt config.Prompt, thoughtless bool) error {
 	conv, err := session.Load()
 	if err != nil {
 		return err
@@ -204,6 +238,16 @@ func tee(teefile string, session config.SessionMetadata, prompt config.Prompt) e
 	}
 
 	last := conv.Messages[len(conv.Messages)-1]
+
+	lastContent := last.Content
+	if thoughtless {
+		var filtered bytes.Buffer
+		if err := filterThink(&filtered, strings.NewReader(lastContent)); err != nil {
+			return err
+		}
+		lastContent = filtered.String()
+	}
+
 	metadata, err := yaml.Marshal(map[string]any{
 		"date":    time.Now().Format("2006-01-02"),
 		"model":   conv.Model,
@@ -214,7 +258,7 @@ func tee(teefile string, session config.SessionMetadata, prompt config.Prompt) e
 		return err
 	}
 
-	content := strings.Join([]string{"---", string(metadata) + "---\n", last.Content}, "\n")
+	content := strings.Join([]string{"---", string(metadata) + "---\n", lastContent}, "\n")
 	return os.WriteFile(teefile, []byte(content), 0644)
 }
 
@@ -251,6 +295,32 @@ func noerr[T any](res T, err error) T {
 }
 
 func noerr0(err error) { noerr(0, err) }
+
+func filterThink(dst io.Writer, src io.Reader) error {
+	reader := bufio.NewReader(src)
+	line, err := reader.ReadString('\n')
+
+	if strings.TrimSpace(line) == "<think>" {
+		for err == nil {
+			line, err = reader.ReadString('\n')
+			if strings.TrimSpace(line) == "</think>" {
+				break
+			}
+		}
+	} else if _, werr := io.WriteString(dst, line); werr != nil {
+		return werr
+	}
+
+	if err == io.EOF {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(dst, reader)
+	return err
+}
 
 func pretty(data any) string {
 	return string(noerr(json.MarshalIndent(data, "", "  ")))

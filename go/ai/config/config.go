@@ -14,17 +14,19 @@ import (
 
 type Jenai struct {
 	// Actual config.
-	Context     Context
-	DryRun      bool
-	Interactive bool
-	List        bool
-	ListModels  bool
-	Model       string
-	OneShot     bool
-	Paste       bool
-	Positional  []string
-	session     SessionMetadata
-	TeeFile     string
+	Context            Context
+	DryRun             bool
+	Interactive        bool
+	List               bool
+	ListModels         bool
+	Model              string
+	OneShot            bool
+	Paste              bool
+	Positional         []string
+	Thoughtless        bool
+	ThoughtlessTeeFile string
+	session            SessionMetadata
+	TeeFile            string
 }
 
 /////////////////////////////////
@@ -53,6 +55,11 @@ func (conf *Jenai) RegisterCLI() *flag.Parser {
 	parser.String("session", &conf.session.Name,
 		"Reuse or create specific session name (/last for most recent session)")
 	parser.String("tee", &conf.TeeFile, "Output first answer to both stdout and FILE (overwritten)")
+	parser.Bool("thoughtless", &conf.Thoughtless,
+		"Hide model reasoning").
+		Alias("t")
+	parser.String("thoughtless-tee", &conf.ThoughtlessTeeFile,
+		"Output first answer to FILE without the reasoning block (overwritten)")
 
 	return parser
 }
