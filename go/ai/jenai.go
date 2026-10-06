@@ -182,16 +182,17 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 
 			var wg sync.WaitGroup
 			wg.Add(1)
+			var filterErr error
 			go func() {
 				defer wg.Done()
-				_ = filterThink(os.Stdout, r)
+				filterErr = filterThink(os.Stdout, r)
 				_ = r.Close()
 			}()
 
 			runErr := cmd.Run()
 			_ = w.Close()
 			wg.Wait()
-			noerr0(runErr)
+			noerr0(errors.Join(runErr, filterErr))
 			return
 		}
 
