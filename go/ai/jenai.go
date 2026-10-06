@@ -301,11 +301,16 @@ func filterThink(dst io.Writer, src io.Reader) error {
 	line, err := reader.ReadString('\n')
 
 	if strings.TrimSpace(line) == "<think>" {
+		closingFound := false
 		for err == nil {
 			line, err = reader.ReadString('\n')
 			if strings.TrimSpace(line) == "</think>" {
+				closingFound = true
 				break
 			}
+		}
+		if !closingFound {
+			return errors.New("missing closing </think> tag")
 		}
 	} else if _, werr := io.WriteString(dst, line); werr != nil {
 		return werr
