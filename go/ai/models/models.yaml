@@ -2,7 +2,7 @@ models:
   glm-flash:
     provider: openrouter
     author: z-ai
-    model: z-ai/glm-5.3-flash
+    model: glm-5.3-flash
 
   ds4-flash:
     provider: openrouter
@@ -28,3 +28,13 @@ models:
     provider: openrouter
     author: moonshotai
     model: kimi-k3
+
+  luna:
+    provider: openrouter
+    author: ~openai
+    model: gpt-luna-latest
+
+  sol:
+    provider: openrouter
+    author: ~openai
+    model: gpt-sol-latest
