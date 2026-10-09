@@ -59,7 +59,8 @@ func (conf *Jenai) RegisterCLI() *flag.Parser {
 		"Hide model reasoning").
 		Alias("t")
 	parser.String("thoughtless-tee", &conf.ThoughtlessTeeFile,
-		"Output first answer to FILE without the reasoning block (overwritten)")
+		"Output first answer to FILE without the reasoning block (overwritten)").
+		Alias("tt")
 
 	return parser
 }
