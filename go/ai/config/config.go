@@ -13,20 +13,19 @@ import (
 )
 
 type Jenai struct {
-	// Actual config.
-	Context            Context
-	DryRun             bool
-	Interactive        bool
-	List               bool
-	ListModels         bool
-	Model              string
-	OneShot            bool
-	Paste              bool
-	Positional         []string
-	Thoughtless        bool
-	ThoughtlessTeeFile string
+	Context            Context         `yaml:"context" json:"context"`
+	DryRun             bool            `yaml:"dryrun,omitempty" json:"dryrun,omitempty"`
+	Interactive        bool            `yaml:"interactive,omitempty" json:"interactive,omitempty"`
+	List               bool            `yaml:"list,omitempty" json:"list,omitempty"`
+	ListModels         bool            `yaml:"listmodels,omitempty" json:"listmodels,omitempty"`
+	Model              string          `yaml:"model,omitempty" json:"model,omitempty"`
+	OneShot            bool            `yaml:"oneshot,omitempty" json:"oneshot,omitempty"`
+	Paste              bool            `yaml:"paste,omitempty" json:"paste,omitempty"`
+	Positional         []string        `yaml:"positional,omitempty" json:"positional,omitempty"`
+	Thoughtless        bool            `yaml:"thoughtless,omitempty" json:"thoughtless,omitempty"`
+	ThoughtlessTeeFile string          `yaml:"thoughtlessteefile,omitempty" json:"thoughtlessteefile,omitempty"`
 	session            SessionMetadata
-	TeeFile            string
+	TeeFile            string          `yaml:"teefile,omitempty" json:"teefile,omitempty"`
 }
 
 /////////////////////////////////

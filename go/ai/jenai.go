@@ -208,14 +208,14 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 		aichat(strings.NewReader(prompt.String()))
 
 		if cfg.TeeFile != "" {
-			if err := tee(cfg.TeeFile, session, prompt, false); err != nil {
+			if err := tee(cfg, session, prompt, false); err != nil {
 				fmt.Fprintf(os.Stderr,
 					"can't tee to %s (will proceed nonetheless): %s", cfg.TeeFile, err)
 			}
 		}
 
 		if cfg.ThoughtlessTeeFile != "" {
-			if err := tee(cfg.ThoughtlessTeeFile, session, prompt, true); err != nil {
+			if err := tee(cfg, session, prompt, true); err != nil {
 				fmt.Fprintf(os.Stderr,
 					"can't tee to %s (will proceed nonetheless): %s", cfg.ThoughtlessTeeFile, err)
 			}
@@ -228,7 +228,12 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 	}
 }
 
-func tee(teefile string, session config.SessionMetadata, prompt config.Prompt, thoughtless bool) error {
+func tee(cfg *config.Jenai, session config.SessionMetadata, prompt config.Prompt, thoughtless bool) error {
+	teefile := cfg.TeeFile
+	if thoughtless {
+		teefile = cfg.ThoughtlessTeeFile
+	}
+
 	conv, err := session.Load()
 	if err != nil {
 		return err
@@ -251,17 +256,22 @@ func tee(teefile string, session config.SessionMetadata, prompt config.Prompt, t
 
 	content := lastContent
 	if !thoughtless {
-		metadata, err := yaml.Marshal(map[string]any{
-			"date":    time.Now().Format("2006-01-02"),
-			"model":   conv.Model,
-			"prompt":  prompt.Static(),
-			"context": prompt.Paths,
-		})
+		metadata, err := structToMap(cfg)
 		if err != nil {
 			return err
 		}
 
-		content = strings.Join([]string{"---", string(metadata) + "---\n", lastContent}, "\n")
+		metadata["date"] = time.Now().Format("2006-01-02")
+		metadata["model"] = conv.Model
+		metadata["prompt"] = prompt.Static()
+		delete(metadata, "positional") // Noise that should be present in `prompt` anyway.
+
+		yamlmeta, err := yaml.Marshal(metadata)
+		if err != nil {
+			return err
+		}
+
+		content = strings.Join([]string{"---", string(yamlmeta) + "---\n", lastContent}, "\n")
 	}
 	return os.WriteFile(teefile, []byte(content), 0644)
 }
@@ -336,4 +346,18 @@ func filterThink(dst io.Writer, src io.Reader) error {
 
 func pretty(data any) string {
 	return string(noerr(json.MarshalIndent(data, "", "  ")))
+}
+
+func structToMap(data any) (map[string]any, error) {
+	yamlbytes, err := yaml.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]any)
+	err = yaml.Unmarshal(yamlbytes, &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

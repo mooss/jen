@@ -19,10 +19,10 @@ import (
 
 // Context handles inclusion of files and directories as context.
 type Context struct {
-	Files       []string
-	Dirs        []string
-	Above       bool
-	LineNumbers bool
+	Files       []string `yaml:"files,omitempty" json:"files,omitempty"`
+	Dirs        []string `yaml:"dirs,omitempty" json:"dirs,omitempty"`
+	Above       bool     `yaml:"above,omitempty" json:"above,omitempty"`
+	LineNumbers bool     `yaml:"linenumbers,omitempty" json:"linenumbers,omitempty"`
 }
 
 func (c *Context) Empty() bool { return len(c.Files) == 0 && len(c.Dirs) == 0 }
