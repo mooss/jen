@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -75,8 +74,10 @@ func main() {
 
 	if dumpConfig {
 		spec := noerr(modelSpec(cfg))
-		fmt.Println("Model:", pretty(spec))
-		fmt.Println("Config:", pretty(cfg))
+		fmt.Println(pretty(map[string]any{
+			"model": spec,
+			"config": cfg,
+		}))
 		os.Exit(0)
 	}
 
@@ -345,7 +346,7 @@ func filterThink(dst io.Writer, src io.Reader) error {
 }
 
 func pretty(data any) string {
-	return string(noerr(json.MarshalIndent(data, "", "  ")))
+	return string(noerr(yaml.Marshal(data)))
 }
 
 func structToMap(data any) (map[string]any, error) {
