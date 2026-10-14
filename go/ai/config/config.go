@@ -13,19 +13,17 @@ import (
 )
 
 type Jenai struct {
-	Context            Context         `yaml:"context" json:"context"`
-	DryRun             bool            `yaml:"dryrun,omitempty" json:"dryrun,omitempty"`
-	Interactive        bool            `yaml:"interactive,omitempty" json:"interactive,omitempty"`
-	List               bool            `yaml:"list,omitempty" json:"list,omitempty"`
-	ListModels         bool            `yaml:"listmodels,omitempty" json:"listmodels,omitempty"`
-	Model              string          `yaml:"model,omitempty" json:"model,omitempty"`
-	OneShot            bool            `yaml:"oneshot,omitempty" json:"oneshot,omitempty"`
-	Paste              bool            `yaml:"paste,omitempty" json:"paste,omitempty"`
-	Positional         []string        `yaml:"positional,omitempty" json:"positional,omitempty"`
-	Thoughtless        bool            `yaml:"thoughtless,omitempty" json:"thoughtless,omitempty"`
-	ThoughtlessTeeFile string          `yaml:"thoughtlessteefile,omitempty" json:"thoughtlessteefile,omitempty"`
-	session            SessionMetadata
-	TeeFile            string          `yaml:"teefile,omitempty" json:"teefile,omitempty"`
+	Context            Context  `yaml:"context" json:"context"`
+	DryRun             bool     `yaml:"dryrun,omitempty" json:"dryrun,omitempty"`
+	List               bool     `yaml:"list,omitempty" json:"list,omitempty"`
+	ListModels         bool     `yaml:"listmodels,omitempty" json:"listmodels,omitempty"`
+	Model              string   `yaml:"model,omitempty" json:"model,omitempty"`
+	OneShot            bool     `yaml:"oneshot,omitempty" json:"oneshot,omitempty"`
+	Paste              bool     `yaml:"paste,omitempty" json:"paste,omitempty"`
+	Positional         []string `yaml:"positional,omitempty" json:"positional,omitempty"`
+	Thoughtless        bool     `yaml:"thoughtless,omitempty" json:"thoughtless,omitempty"`
+	ThoughtlessTeeFile string   `yaml:"thoughtlessteefile,omitempty" json:"thoughtlessteefile,omitempty"`
+	TeeFile            string   `yaml:"teefile,omitempty" json:"teefile,omitempty"`
 }
 
 /////////////////////////////////
@@ -39,8 +37,6 @@ func (conf *Jenai) RegisterCLI() *flag.Parser {
 	parser.Bool("dry-run", &conf.DryRun, "Print interpolated prompt without sending to LLM").
 		Alias("n")
 	parser.StringSlice("file", &conf.Context.Files, "Include specific file(s) as context")
-	parser.Bool("interactive", &conf.Interactive, "Start an interactive aichat session").
-		Alias("i")
 	parser.Bool("list", &conf.List, "list all available prompts").
 		Alias("l")
 	parser.Bool("list-models", &conf.ListModels, "list all available models").
@@ -51,8 +47,6 @@ func (conf *Jenai) RegisterCLI() *flag.Parser {
 	parser.Bool("oneshot", &conf.OneShot, "Use positional arguments as the prompt").
 		Alias("o")
 	parser.Bool("paste", &conf.Paste, "Use clipboard content as prompt")
-	parser.String("session", &conf.session.Name,
-		"Reuse or create specific session name (/last for most recent session)")
 	parser.String("tee", &conf.TeeFile, "Output first answer to both stdout and FILE (overwritten)")
 	parser.Bool("thoughtless", &conf.Thoughtless,
 		"Hide model reasoning").
@@ -126,20 +120,6 @@ func (conf *Jenai) BuildPrompt(lib prompts.Library) (Prompt, error) {
 	}
 
 	return res, nil
-}
-
-/////////////
-// Session //
-
-// Session returns a session object to manipulate a chat session.
-func (conf *Jenai) Session() (SessionMetadata, error) {
-	if conf.session.Dir == "" {
-		if err := conf.session.prepare(); err != nil {
-			return SessionMetadata{}, err
-		}
-	}
-
-	return conf.session, nil
 }
 
 ///////////////////////

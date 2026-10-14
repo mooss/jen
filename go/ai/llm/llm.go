@@ -1,0 +1,59 @@
+package llm
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	anyllm "github.com/mozilla-ai/any-llm-go"
+	"github.com/mozilla-ai/any-llm-go/providers"
+	"github.com/mozilla-ai/any-llm-go/providers/openai"
+
+	"github.com/mooss/jen/go/ai/models"
+)
+
+// NewProvider returns a provider for the given model spec.
+func NewProvider(spec models.Spec) (anyllm.Provider, error) {
+	switch spec.Provider {
+	case "openrouter":
+		return openai.NewCompatible(openai.CompatibleConfig{
+			Name:           "openrouter",
+			DefaultBaseURL: "https://openrouter.ai/api/v1",
+			APIKeyEnvVar:   "OPENROUTER_API_KEY",
+			RequireAPIKey:  true,
+			Capabilities:   providers.Capabilities{Completion: true, CompletionStreaming: true},
+		})
+	default:
+		return nil, fmt.Errorf("unsupported provider: %s", spec.Provider)
+	}
+}
+
+// Complete sends the prompt to the model and returns content and reasoning.
+func Complete(ctx context.Context, spec models.Spec, prompt string) (content, reasoning string, err error) {
+	p, err := NewProvider(spec)
+	if err != nil {
+		return "", "", err
+	}
+
+	resp, err := p.Completion(ctx, anyllm.CompletionParams{
+		Model:    spec.ID(),
+		Messages: []anyllm.Message{{Role: anyllm.RoleUser, Content: prompt}},
+		ReasoningEffort: anyllm.ReasoningEffortMedium,
+	})
+	if err != nil {
+		return "", "", err
+	}
+
+	if len(resp.Choices) == 0 {
+		return "", "", errors.New("empty completion")
+	}
+
+	m := resp.Choices[0].Message
+	content = m.ContentString()
+
+	if m.Reasoning != nil {
+		reasoning = m.Reasoning.Content
+	}
+
+	return content, reasoning, nil
+}

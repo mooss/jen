@@ -1,22 +1,21 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
+	"context"
 	"errors"
 	"fmt"
-	"io"
 	"maps"
 	"os"
-	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
+	"syscall"
 	"time"
 
 	"github.com/mooss/bagend/go/flag"
 	"github.com/mooss/jen/go/ai/config"
+	"github.com/mooss/jen/go/ai/llm"
 	"github.com/mooss/jen/go/ai/models"
 	"github.com/mooss/jen/go/ai/prompts"
 	"gopkg.in/yaml.v3"
@@ -75,7 +74,7 @@ func main() {
 	if dumpConfig {
 		spec := noerr(modelSpec(cfg))
 		fmt.Println(pretty(map[string]any{
-			"model": spec,
+			"model":  spec,
 			"config": cfg,
 		}))
 		os.Exit(0)
@@ -164,123 +163,79 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 		os.Exit(0)
 	}
 
-	spec := noerr(modelSpec(cfg))
-	session := noerr(cfg.Session())
-	aichat := func(stdin io.Reader) {
-		cmd := exec.Command("aichat",
-			"--model", spec.Aichat(), "--session", session.Name, "--save-session")
-		cmd.Env = append(cmd.Env, "AICHAT_COMPRESS_THRESHOLD=10000",
-			"AICHAT_SESSIONS_DIR="+session.Dir)
-		cmd.Stdin = stdin
-		cmd.Stderr = os.Stderr
-
-		if cfg.Thoughtless {
-			r, w, err := os.Pipe()
-			if err != nil {
-				fatal(err)
-			}
-			cmd.Stdout = w
-
-			var wg sync.WaitGroup
-			wg.Add(1)
-			var filterErr error
-			go func() {
-				defer wg.Done()
-				filterErr = filterThink(os.Stdout, r)
-				_ = r.Close()
-			}()
-
-			runErr := cmd.Run()
-			_ = w.Close()
-			wg.Wait()
-			noerr0(errors.Join(runErr, filterErr))
-			return
-		}
-
-		cmd.Stdout = os.Stdout
-		noerr0(cmd.Run())
-	}
-
-	if prompt.Empty() && !session.Requested {
+	if prompt.Empty() {
 		fatal(errors.New("the prompt is empty"))
 	}
 
-	if !prompt.Empty() {
-		aichat(strings.NewReader(prompt.String()))
+	spec := noerr(modelSpec(cfg))
 
-		if cfg.TeeFile != "" {
-			if err := tee(cfg, session, prompt, false); err != nil {
-				fmt.Fprintf(os.Stderr,
-					"can't tee to %s (will proceed nonetheless): %s", cfg.TeeFile, err)
-			}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	content, reasoning, err := llm.Complete(ctx, spec, prompt.String())
+	noerr0(err)
+
+	display := content
+	full := content
+	if reasoning != "" {
+		full = "<think>\n" + reasoning + "\n</think>\n" + content
+		if !cfg.Thoughtless {
+			display = full
 		}
+	}
+	if !strings.HasSuffix(display, "\n") {
+		display += "\n"
+	}
+	if !strings.HasSuffix(full, "\n") {
+		full += "\n"
+	}
 
-		if cfg.ThoughtlessTeeFile != "" {
-			if err := tee(cfg, session, prompt, true); err != nil {
-				fmt.Fprintf(os.Stderr,
-					"can't tee to %s (will proceed nonetheless): %s", cfg.ThoughtlessTeeFile, err)
-			}
+	if _, err := fmt.Fprint(os.Stdout, display); err != nil {
+		fatal(err)
+	}
+
+	if cfg.TeeFile != "" {
+		if err := tee(cfg, prompt, full, spec); err != nil {
+			fmt.Fprintf(os.Stderr,
+				"can't tee to %s (will proceed nonetheless): %s", cfg.TeeFile, err)
 		}
 	}
 
-	// Handle interactive mode.
-	if cfg.Interactive || (session.Requested && prompt.Empty()) {
-		aichat(os.Stdin)
+	if cfg.ThoughtlessTeeFile != "" {
+		if err := thoughtlessTee(cfg, content); err != nil {
+			fmt.Fprintf(os.Stderr,
+				"can't tee to %s (will proceed nonetheless): %s", cfg.ThoughtlessTeeFile, err)
+		}
 	}
 }
 
-func tee(cfg *config.Jenai, session config.SessionMetadata, prompt config.Prompt, thoughtless bool) error {
-	teefile := cfg.TeeFile
-	if thoughtless {
-		teefile = cfg.ThoughtlessTeeFile
-	}
-
-	conv, err := session.Load()
+func tee(cfg *config.Jenai, prompt config.Prompt, answer string, spec models.Spec) error {
+	metadata, err := structToMap(cfg)
 	if err != nil {
 		return err
 	}
 
-	if len(conv.Messages) == 0 {
-		return fmt.Errorf("no message in session")
+	metadata["date"] = time.Now().Format("2006-01-02")
+	metadata["model"] = spec.QualifiedName()
+	metadata["prompt"] = prompt.Static()
+	delete(metadata, "positional") // Noise that should be present in `prompt` anyway.
+
+	yamlmeta, err := yaml.Marshal(metadata)
+	if err != nil {
+		return err
 	}
 
-	last := conv.Messages[len(conv.Messages)-1]
+	content := strings.Join([]string{"---", string(yamlmeta) + "---\n", answer}, "\n")
+	return os.WriteFile(cfg.TeeFile, []byte(content), 0644)
+}
 
-	lastContent := last.Content
-	if thoughtless {
-		var filtered bytes.Buffer
-		if err := filterThink(&filtered, strings.NewReader(lastContent)); err != nil {
-			return err
-		}
-		lastContent = filtered.String()
-	}
-
-	content := lastContent
-	if !thoughtless {
-		metadata, err := structToMap(cfg)
-		if err != nil {
-			return err
-		}
-
-		metadata["date"] = time.Now().Format("2006-01-02")
-		metadata["model"] = conv.Model
-		metadata["prompt"] = prompt.Static()
-		delete(metadata, "positional") // Noise that should be present in `prompt` anyway.
-
-		yamlmeta, err := yaml.Marshal(metadata)
-		if err != nil {
-			return err
-		}
-
-		content = strings.Join([]string{"---", string(yamlmeta) + "---\n", lastContent}, "\n")
-	}
-	return os.WriteFile(teefile, []byte(content), 0644)
+func thoughtlessTee(cfg *config.Jenai, answer string) error {
+	return os.WriteFile(cfg.ThoughtlessTeeFile, []byte(answer), 0644)
 }
 
 func modelSpec(cfg *config.Jenai) (models.Spec, error) {
 	fromZoo := func() (models.Spec, error) { return models.Get(cfg.Model) }
 
-	// Model specified directly in aichat's provider:author/model formet.
+	// Qualified name in provider:author/model formet.
 	provider, rest, found := strings.Cut(cfg.Model, ":")
 	if !found {
 		return fromZoo()
@@ -310,40 +265,6 @@ func noerr[T any](res T, err error) T {
 }
 
 func noerr0(err error) { noerr(0, err) }
-
-func filterThink(dst io.Writer, src io.Reader) error {
-	reader := bufio.NewReader(src)
-	line, err := reader.ReadString('\n')
-
-	if strings.TrimSpace(line) == "<think>" {
-		closingFound := false
-		for err == nil {
-			line, err = reader.ReadString('\n')
-			if strings.TrimSpace(line) == "</think>" {
-				closingFound = true
-				break
-			}
-		}
-		if !closingFound {
-			if err != nil {
-				return fmt.Errorf("missing closing </think> tag: %w", err)
-			}
-			return errors.New("missing closing </think> tag")
-		}
-	} else if _, werr := io.WriteString(dst, line); werr != nil {
-		return werr
-	}
-
-	if err == io.EOF {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(dst, reader)
-	return err
-}
 
 func pretty(data any) string {
 	return string(noerr(yaml.Marshal(data)))

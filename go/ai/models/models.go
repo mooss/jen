@@ -15,11 +15,11 @@ type Spec struct {
 	// ShortName of the model, e.g., "r1".
 	ShortName string `yaml:"short_name"`
 	// Provider of the model, e.g., "openrouter".
-	Provider  string `yaml:"provider"`
+	Provider string `yaml:"provider"`
 	// Author of the model, e.g., "deepseek".
-	Author    string `yaml:"author"`
+	Author string `yaml:"author"`
 	// Model identifier, e.g., "deepseek-r1-0528:nitro".
-	Model     string `yaml:"model"`
+	Model string `yaml:"model"`
 }
 
 type Zoo struct {
@@ -60,7 +60,12 @@ func Get(shortName string) (Spec, error) {
 	return spec, nil
 }
 
-// Aichat returns the model name as aichat's --model flag expects it.
-func (sp Spec) Aichat() string {
+// ID returns the model identifier as provider APIs expect it (author/model).
+func (sp Spec) ID() string {
+	return sp.Author + "/" + sp.Model
+}
+
+// QualifiedName returns the full model name formatted as provider:author/model.
+func (sp Spec) QualifiedName() string {
 	return fmt.Sprintf("%s:%s/%s", sp.Provider, sp.Author, sp.Model)
 }
