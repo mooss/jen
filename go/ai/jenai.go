@@ -249,17 +249,20 @@ func tee(teefile string, session config.SessionMetadata, prompt config.Prompt, t
 		lastContent = filtered.String()
 	}
 
-	metadata, err := yaml.Marshal(map[string]any{
-		"date":    time.Now().Format("2006-01-02"),
-		"model":   conv.Model,
-		"prompt":  prompt.Static(),
-		"context": prompt.Paths,
-	})
-	if err != nil {
-		return err
-	}
+	content := lastContent
+	if !thoughtless {
+		metadata, err := yaml.Marshal(map[string]any{
+			"date":    time.Now().Format("2006-01-02"),
+			"model":   conv.Model,
+			"prompt":  prompt.Static(),
+			"context": prompt.Paths,
+		})
+		if err != nil {
+			return err
+		}
 
-	content := strings.Join([]string{"---", string(metadata) + "---\n", lastContent}, "\n")
+		content = strings.Join([]string{"---", string(metadata) + "---\n", lastContent}, "\n")
+	}
 	return os.WriteFile(teefile, []byte(content), 0644)
 }
 
