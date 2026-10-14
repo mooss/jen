@@ -21,11 +21,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var home = os.Getenv("HOME")
-var configDir = filepath.Join(home, ".config", "jenai")
-
 func main() {
-	ensureConfig()
+	if err := ensureConfig(); err != nil {
+		fatal(err)
+	}
 	cfg, parser := conf()
 
 	if len(os.Args) == 1 { // No arguments, print help.
@@ -91,39 +90,98 @@ func main() {
 
 func ensureConfig() error {
 	err, alreadyExists := ensureConfigDir()
-	if err != nil || alreadyExists {
+	if err != nil {
 		return err
 	}
+	if alreadyExists {
+		return ensureConfigYaml()
+	}
 
-	fmt.Println("Initialized config file in", configDir)
+	dir, err := config.ConfigDir()
+	if err != nil {
+		return err
+	}
+	fmt.Println("Initialized config file in", dir)
 
-	err = writeConfigFile("models.yaml", models.EmbeddedBytes)
+	err = writeConfigFile("models.yaml", models.EmbeddedBytes, 0644)
 	if err != nil {
 		return err
 	}
 
-	err = writeConfigFile("prompts.yaml", prompts.EmbeddedBytes)
+	err = writeConfigFile("prompts.yaml", prompts.EmbeddedBytes, 0644)
+	if err != nil {
+		return err
+	}
 
-	return err
+	return ensureConfigYaml()
+}
+
+func ensureConfigYaml() error {
+	dir, err := config.ConfigDir()
+	if err != nil {
+		return err
+	}
+	cfgPath := filepath.Join(dir, "config.yaml")
+
+	ferr, exists := fileExists(cfgPath)
+	if ferr != nil {
+		return ferr
+	}
+	if !exists {
+		return writeConfigFile("config.yaml", []byte{}, 0600)
+	}
+
+	info, err := os.Stat(cfgPath)
+	if err != nil {
+		return err
+	}
+
+	if info.Mode().Perm() != 0600 {
+		if err := os.Chmod(cfgPath, 0600); err != nil {
+			return err
+		}
+		fmt.Fprintf(os.Stderr, "warning: permissions of %q changed to 0600 to make it non world-readable to protect secrets within\n", cfgPath)
+	}
+
+	return nil
 }
 
 // ensureConfigDir tests if the directory already exists and creates it if it doesn't.
 // Returns true when the directory already exists.
 func ensureConfigDir() (error, bool) {
-	err, exists := fileExists(home)
-	if err != nil || !exists {
-		return fmt.Errorf("$HOME is invalid (%s): %w", home, err), false
+	dir, err := config.ConfigDir()
+	if err != nil {
+		return err, false
 	}
 
-	err, exists = fileExists(configDir)
-	if err != nil || exists {
+	err, exists := fileExists(dir)
+	if err != nil {
+		return err, false
+	}
+
+	if exists {
+		info, statErr := os.Stat(dir)
+		if statErr != nil {
+			return statErr, true
+		}
+
+		if info.Mode().Perm() != 0700 {
+			if chmodErr := os.Chmod(dir, 0700); chmodErr != nil {
+				return chmodErr, true
+			}
+			fmt.Fprintf(
+				os.Stderr,
+				"warning: permissions of config directory %q changed to 0700 to make it non world-readable to protect secrets within\n",
+				dir,
+			)
+		}
+
 		return err, true
 	}
 
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("failed to create config dir: %w", err), false
 	}
-
 	return nil, false
 }
 
@@ -140,8 +198,12 @@ func fileExists(filename string) (error, bool) {
 	return err, false
 }
 
-func writeConfigFile(path string, data []byte) error {
-	if err := os.WriteFile(filepath.Join(configDir, path), data, 0644); err != nil {
+func writeConfigFile(path string, data []byte, perm os.FileMode) error {
+	dir, err := config.ConfigDir()
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(dir, path), data, perm); err != nil {
 		return fmt.Errorf("failed to write %s: %w", path, err)
 	}
 	return nil
@@ -149,6 +211,11 @@ func writeConfigFile(path string, data []byte) error {
 
 func conf() (*config.Jenai, *flag.Parser) {
 	cfg := config.Jenai{}
+	dir, err := config.ConfigDir()
+	if err != nil {
+		fatal(err)
+	}
+	noerr0(cfg.LoadFile(filepath.Join(dir, "config.yaml")))
 	parser := cfg.RegisterCLI()
 	flag.WithHelp(os.Args[0], "PROMPT ...ARGS")(parser)
 
@@ -168,10 +235,11 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 	}
 
 	spec := noerr(modelSpec(cfg))
+	apiKey := noerr(cfg.ApiKeyFor(spec.Provider))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	content, reasoning, err := llm.Complete(ctx, spec, prompt.String())
+	content, reasoning, err := llm.Complete(ctx, spec, apiKey, prompt.String())
 	noerr0(err)
 
 	display := content

@@ -2,28 +2,40 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/mooss/bagend/go/flag"
 	"github.com/mooss/jen/go/ai/prompts"
+	"github.com/mooss/jen/go/utils"
 )
 
+func ConfigDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("cannot determine home directory: %w", err)
+	}
+	return filepath.Join(home, ".config", "jenai"), nil
+}
+
 type Jenai struct {
-	Context            Context  `yaml:"context" json:"context"`
-	DryRun             bool     `yaml:"dryrun,omitempty" json:"dryrun,omitempty"`
-	List               bool     `yaml:"list,omitempty" json:"list,omitempty"`
-	ListModels         bool     `yaml:"listmodels,omitempty" json:"listmodels,omitempty"`
-	Model              string   `yaml:"model,omitempty" json:"model,omitempty"`
-	OneShot            bool     `yaml:"oneshot,omitempty" json:"oneshot,omitempty"`
-	Paste              bool     `yaml:"paste,omitempty" json:"paste,omitempty"`
-	Positional         []string `yaml:"positional,omitempty" json:"positional,omitempty"`
-	Thoughtless        bool     `yaml:"thoughtless,omitempty" json:"thoughtless,omitempty"`
-	ThoughtlessTeeFile string   `yaml:"thoughtlessteefile,omitempty" json:"thoughtlessteefile,omitempty"`
-	TeeFile            string   `yaml:"teefile,omitempty" json:"teefile,omitempty"`
+	ApiKeys            map[string]string `yaml:"-" json:"-"`
+	Context            Context           `yaml:"context" json:"context"`
+	DryRun             bool              `yaml:"dryrun,omitempty" json:"dryrun,omitempty"`
+	List               bool              `yaml:"list,omitempty" json:"list,omitempty"`
+	ListModels         bool              `yaml:"listmodels,omitempty" json:"listmodels,omitempty"`
+	Model              string            `yaml:"model,omitempty" json:"model,omitempty"`
+	OneShot            bool              `yaml:"oneshot,omitempty" json:"oneshot,omitempty"`
+	Paste              bool              `yaml:"paste,omitempty" json:"paste,omitempty"`
+	Positional         []string          `yaml:"positional,omitempty" json:"positional,omitempty"`
+	Thoughtless        bool              `yaml:"thoughtless,omitempty" json:"thoughtless,omitempty"`
+	ThoughtlessTeeFile string            `yaml:"thoughtlessteefile,omitempty" json:"thoughtlessteefile,omitempty"`
+	TeeFile            string            `yaml:"teefile,omitempty" json:"teefile,omitempty"`
 }
 
 /////////////////////////////////
@@ -66,6 +78,37 @@ func (conf *Jenai) ParseCLI(parser *flag.Parser, args []string) error {
 
 	conf.Positional = parser.Positional
 	return nil
+}
+
+func (conf *Jenai) LoadFile(path string) error {
+	loaded, err := utils.FromYAMLFile[struct {
+		ApiKeys map[string]string `yaml:"api-keys" json:"api-keys"`
+	}](path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to load config file %q: %w", path, err)
+	}
+
+	if loaded.ApiKeys != nil {
+		conf.ApiKeys = loaded.ApiKeys
+	}
+	return nil
+}
+
+func (conf *Jenai) ApiKeyFor(provider string) (string, error) {
+	if key := conf.ApiKeys[provider]; key != "" {
+		return key, nil
+	}
+	dir, err := ConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return "", fmt.Errorf(
+		"missing api key for %q: put it in %s as:\napi-keys:\n  %s: API_KEY_HERE",
+		provider, filepath.Join(dir, "config.yaml"), provider,
+	)
 }
 
 // BuildPrompt returns the complete prompt, taking all sources into account (prompt, clipboard,

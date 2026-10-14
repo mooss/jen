@@ -13,31 +13,36 @@ import (
 )
 
 // NewProvider returns a provider for the given model spec.
-func NewProvider(spec models.Spec) (anyllm.Provider, error) {
+func NewProvider(spec models.Spec, apiKey string) (anyllm.Provider, error) {
 	switch spec.Provider {
 	case "openrouter":
-		return openai.NewCompatible(openai.CompatibleConfig{
-			Name:           "openrouter",
-			DefaultBaseURL: "https://openrouter.ai/api/v1",
-			APIKeyEnvVar:   "OPENROUTER_API_KEY",
-			RequireAPIKey:  true,
-			Capabilities:   providers.Capabilities{Completion: true, CompletionStreaming: true},
-		})
+		return newOpenRouter(apiKey)
 	default:
 		return nil, fmt.Errorf("unsupported provider: %s", spec.Provider)
 	}
 }
 
+func newOpenRouter(apiKey string) (anyllm.Provider, error) {
+	return openai.NewCompatible(openai.CompatibleConfig{
+		Name:           "openrouter",
+		DefaultBaseURL: "https://openrouter.ai/api/v1",
+		RequireAPIKey:  true,
+		Capabilities:   providers.Capabilities{Completion: true, CompletionStreaming: true},
+	}, anyllm.WithAPIKey(apiKey))
+}
+
 // Complete sends the prompt to the model and returns content and reasoning.
-func Complete(ctx context.Context, spec models.Spec, prompt string) (content, reasoning string, err error) {
-	p, err := NewProvider(spec)
+func Complete(
+	ctx context.Context, spec models.Spec, apiKey string, prompt string,
+) (content, reasoning string, err error) {
+	p, err := NewProvider(spec, apiKey)
 	if err != nil {
 		return "", "", err
 	}
 
 	resp, err := p.Completion(ctx, anyllm.CompletionParams{
-		Model:    spec.ID(),
-		Messages: []anyllm.Message{{Role: anyllm.RoleUser, Content: prompt}},
+		Model:           spec.ID(),
+		Messages:        []anyllm.Message{{Role: anyllm.RoleUser, Content: prompt}},
 		ReasoningEffort: anyllm.ReasoningEffortMedium,
 	})
 	if err != nil {
@@ -48,11 +53,11 @@ func Complete(ctx context.Context, spec models.Spec, prompt string) (content, re
 		return "", "", errors.New("empty completion")
 	}
 
-	m := resp.Choices[0].Message
-	content = m.ContentString()
+	answer := resp.Choices[0].Message
+	content = answer.ContentString()
 
-	if m.Reasoning != nil {
-		reasoning = m.Reasoning.Content
+	if answer.Reasoning != nil {
+		reasoning = answer.Reasoning.Content
 	}
 
 	return content, reasoning, nil
