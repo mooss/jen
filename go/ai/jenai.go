@@ -314,6 +314,9 @@ func filterThink(dst io.Writer, src io.Reader) error {
 			}
 		}
 		if !closingFound {
+			if err != nil {
+				return fmt.Errorf("missing closing </think> tag: %w", err)
+			}
 			return errors.New("missing closing </think> tag")
 		}
 	} else if _, werr := io.WriteString(dst, line); werr != nil {
