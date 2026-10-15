@@ -1,4 +1,33 @@
-#+title: Text-based generation utilities
+#+title: jenai
 
-This repo is mostly centered on text generation, but as long as something is being generated, it can
-fit in here.
+CLI that builds a text prompt from args, stdin, clipboard, and files/dirs/URLs, then sends it to a model via OpenRouter.
+Also acts as a prompt manager of sorts, embedding a few useful prompts that can be quickly invoked by name.
+
+* Build and requirements
+
+Requires Go to be setup locally and install with =go install=:
+#+begin_src sh
+make install
+#+end_src
+
+Clipboard paste requires =xclip= (does not work with wayland).
+
+* Quick tour
+
+** Config
+
+API keys are stored in =/.config/jenai/config.yaml=.
+First run explains how to set it up.
+
+** Context
+
+Add files/URLs (=--file=), directories (=--dir=, walked recursively).
+
+** Models
+
+Use short name from zoo (=glm-flash=) or qualified =provider:author/model= (=openrouter:z-ai/glm-5.3-flash=).
+
+** Prompts
+
+Prompts are written as Go templates with some additional primitives like =git=, =join=, =strings=, =ins=, =per=, =sec1= and access to positional arguments.
+
