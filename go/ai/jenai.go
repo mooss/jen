@@ -239,28 +239,88 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	content, reasoning, err := llm.Complete(ctx, spec, apiKey, prompt.String())
-	noerr0(err)
 
-	display := content
-	full := content
+	content, full := streamAndDisplay(ctx, cfg, spec, apiKey, prompt.String())
+	writeTees(cfg, prompt, full, content, spec)
+}
+
+func streamAndDisplay(ctx context.Context, cfg *config.Jenai, spec models.Spec, apiKey, promptStr string) (content, full string) {
+	var contentBuilder, reasoningBuilder strings.Builder
+	var reasoningStarted, reasoningClosed bool
+
+	onReasoning := func(s string) {
+		reasoningBuilder.WriteString(s)
+		if cfg.Thoughtless {
+			return
+		}
+		if !reasoningStarted {
+			fmt.Fprint(os.Stdout, "<think>\n")
+			reasoningStarted = true
+		}
+		fmt.Fprint(os.Stdout, s)
+	}
+
+	onContent := func(s string) {
+		contentBuilder.WriteString(s)
+		if reasoningStarted && !reasoningClosed && !cfg.Thoughtless {
+			fmt.Fprint(os.Stdout, "\n</think>\n")
+			reasoningClosed = true
+		}
+		fmt.Fprint(os.Stdout, s)
+	}
+
+	chunks, errs, err := llm.Stream(ctx, spec, apiKey, promptStr)
+	noerr0(err)
+	for chunk := range chunks {
+		if len(chunk.Choices) == 0 {
+			if chunk.Usage != nil {
+				continue // Expected final usage-only chunk from `IncludeUsage: true`.
+			}
+			fmt.Fprintln(os.Stderr, "warning: chunk with empty choices and no usage")
+			continue
+		}
+
+		c := chunk.Choices[0]
+		if c.Delta.Reasoning != nil && c.Delta.Reasoning.Content != "" {
+			onReasoning(c.Delta.Reasoning.Content)
+		}
+		if c.Delta.Content != "" {
+			onContent(c.Delta.Content)
+		}
+
+	}
+	noerr0(<-errs)
+
+	if reasoningStarted && !reasoningClosed {
+		noerr0(errors.New("reasoning never closed"))
+	}
+
+	content = contentBuilder.String()
+	reasoning := reasoningBuilder.String()
+
+	full = content
 	if reasoning != "" {
 		full = "<think>\n" + reasoning + "\n</think>\n" + content
-		if !cfg.Thoughtless {
-			display = full
-		}
-	}
-	if !strings.HasSuffix(display, "\n") {
-		display += "\n"
-	}
-	if !strings.HasSuffix(full, "\n") {
-		full += "\n"
 	}
 
-	if _, err := fmt.Fprint(os.Stdout, display); err != nil {
-		fatal(err)
+	if content != "" && !strings.HasSuffix(content, "\n") {
+		fmt.Fprintln(os.Stdout)
 	}
 
+	content = withTrailingNewline(content)
+	full = withTrailingNewline(full)
+
+	return content, full
+}
+
+func withTrailingNewline(s string) string {
+	if s != "" && !strings.HasSuffix(s, "\n") {
+		return s + "\n"
+	}
+	return s
+}
+
+func writeTees(cfg *config.Jenai, prompt config.Prompt, full, content string, spec models.Spec) {
 	if cfg.TeeFile != "" {
 		if err := tee(cfg, prompt, full, spec); err != nil {
 			fmt.Fprintf(os.Stderr,

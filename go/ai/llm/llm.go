@@ -2,7 +2,6 @@ package llm
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	anyllm "github.com/mozilla-ai/any-llm-go"
@@ -31,34 +30,28 @@ func newOpenRouter(apiKey string) (anyllm.Provider, error) {
 	}, anyllm.WithAPIKey(apiKey))
 }
 
-// Complete sends the prompt to the model and returns content and reasoning.
-func Complete(
-	ctx context.Context, spec models.Spec, apiKey string, prompt string,
-) (content, reasoning string, err error) {
-	p, err := NewProvider(spec, apiKey)
-	if err != nil {
-		return "", "", err
-	}
-
-	resp, err := p.Completion(ctx, anyllm.CompletionParams{
+func streamParams(spec models.Spec, prompt string) anyllm.CompletionParams {
+	return anyllm.CompletionParams{
 		Model:           spec.ID(),
 		Messages:        []anyllm.Message{{Role: anyllm.RoleUser, Content: prompt}},
 		ReasoningEffort: anyllm.ReasoningEffortMedium,
-	})
+		StreamOptions:   &anyllm.StreamOptions{IncludeUsage: true},
+	}
+}
+
+// Stream starts a streaming completion and returns the raw chunk and error channels.
+func Stream(ctx context.Context, spec models.Spec, apiKey, prompt string) (<-chan anyllm.ChatCompletionChunk, <-chan error, error) {
+	p, err := NewProvider(spec, apiKey)
 	if err != nil {
-		return "", "", err
+		return nil, nil, err
 	}
 
-	if len(resp.Choices) == 0 {
-		return "", "", errors.New("empty completion")
+	if cp, ok := p.(anyllm.CapabilityProvider); ok {
+		if !cp.Capabilities().CompletionStreaming {
+			return nil, nil, fmt.Errorf("provider %q does not support streaming completion", spec.Provider)
+		}
 	}
 
-	answer := resp.Choices[0].Message
-	content = answer.ContentString()
-
-	if answer.Reasoning != nil {
-		reasoning = answer.Reasoning.Content
-	}
-
-	return content, reasoning, nil
+	chunks, errs := p.CompletionStream(ctx, streamParams(spec, prompt))
+	return chunks, errs, nil
 }
