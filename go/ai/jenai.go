@@ -281,8 +281,8 @@ func streamAndDisplay(ctx context.Context, cfg *config.Jenai, spec models.Spec, 
 		}
 
 		c := chunk.Choices[0]
-		if c.Delta.Reasoning != nil && c.Delta.Reasoning.Content != "" {
-			onReasoning(c.Delta.Reasoning.Content)
+		if c.Delta.Reasoning != "" {
+			onReasoning(c.Delta.Reasoning)
 		}
 		if c.Delta.Content != "" {
 			onContent(c.Delta.Content)
