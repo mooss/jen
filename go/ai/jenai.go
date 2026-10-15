@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"os"
 	"os/signal"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/mooss/bagend/go/flag"
 	"github.com/mooss/jen/go/ai/config"
+	"github.com/mooss/jen/go/ai/highlight"
 	"github.com/mooss/jen/go/ai/llm"
 	"github.com/mooss/jen/go/ai/models"
 	"github.com/mooss/jen/go/ai/prompts"
@@ -246,6 +248,8 @@ func run(cfg *config.Jenai, lib prompts.Library) {
 
 func streamAndDisplay(ctx context.Context, cfg *config.Jenai, spec models.Spec, apiKey, promptStr string) (content, full string) {
 	var contentBuilder, reasoningBuilder strings.Builder
+	output := highlight.NewMarkdownStreamer(os.Stdout, "pygments", terminalColorEnabled(os.Stdout))
+	reasoningOutput := highlight.NewMarkdownStreamer(os.Stdout, "pygments", terminalColorEnabled(os.Stdout))
 	var reasoningStarted, reasoningClosed bool
 
 	onReasoning := func(s string) {
@@ -254,19 +258,20 @@ func streamAndDisplay(ctx context.Context, cfg *config.Jenai, spec models.Spec, 
 			return
 		}
 		if !reasoningStarted {
-			fmt.Fprint(os.Stdout, "<think>\n")
+			fmt.Fprint(os.Stdout, reasoningOutput.ColorizeTag("<think>"), "\n")
 			reasoningStarted = true
 		}
-		fmt.Fprint(os.Stdout, s)
+		noerr0(reasoningOutput.Write(s))
 	}
 
 	onContent := func(s string) {
 		contentBuilder.WriteString(s)
 		if reasoningStarted && !reasoningClosed && !cfg.Thoughtless {
-			fmt.Fprint(os.Stdout, "\n</think>\n")
+			noerr0(reasoningOutput.Flush())
+			fmt.Fprint(os.Stdout, "\n", reasoningOutput.ColorizeTag("</think>"), "\n\n")
 			reasoningClosed = true
 		}
-		fmt.Fprint(os.Stdout, s)
+		noerr0(output.Write(s))
 	}
 
 	chunks, errs, err := llm.Stream(ctx, spec, apiKey, promptStr)
@@ -298,6 +303,8 @@ func streamAndDisplay(ctx context.Context, cfg *config.Jenai, spec models.Spec, 
 	content = contentBuilder.String()
 	reasoning := reasoningBuilder.String()
 
+	noerr0(output.Flush())
+
 	full = content
 	if reasoning != "" {
 		full = "<think>\n" + reasoning + "\n</think>\n" + content
@@ -311,6 +318,20 @@ func streamAndDisplay(ctx context.Context, cfg *config.Jenai, spec models.Spec, 
 	full = withTrailingNewline(full)
 
 	return content, full
+}
+
+
+func terminalColorEnabled(writer io.Writer) bool {
+	if os.Getenv("NO_COLOR") != "" {
+		return false
+	}
+
+	file, ok := writer.(*os.File)
+	if !ok {
+		return false
+	}
+	info, err := file.Stat()
+	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }
 
 func withTrailingNewline(s string) string {
